@@ -8,6 +8,12 @@ import cv2
 import os 
 
 
+def frame_to_pixel(frame: np.ndarray, r1: int, r2: int, c1: int ,c2: int) -> int:
+    # creates the window
+    window = frame[r1:r2, c1:c2]
+    # averages the window and rounds to 0 or 1
+    return round(np.sum(window) / ((r2-r1) * (c2-c1) * 255))
+
 def truncate_frame(frame: np.ndarray, width: int, height: int) -> np.ndarray:
     # convert to black/white (with 1 value)
     frame = frame[:, :, 0]
@@ -25,16 +31,15 @@ def truncate_frame(frame: np.ndarray, width: int, height: int) -> np.ndarray:
 
     return np.array([
         np.array([
-            round(np.sum(
-                frame[round(y * window_h):round(y * window_h + window_h),
-                      round(x * window_w):round(x * window_w + window_w)]
-            ) / (window_w * window_h * 255)) * 255
+            frame_to_pixel(frame, round(y * window_h), round(y * window_h + window_h),
+                                  round(x * window_w), round(x * window_w + window_w))
             for x in range(width)
         ]) for y in range(height)
     ])                      
 
 def reader(video: cv2.VideoCapture, width: int = 160, height: int = 90, start_frame: int = 1):
-    for _ in range(start_frame):
+    ret, frame = video.read()
+    for _ in range(start_frame - 1):
         ret, frame = video.read()
 
     while ret:
@@ -58,7 +63,7 @@ def create_frames_folder():
 def main():
     filename = "bad_apple.mp4"
     dimensions = 160, 90
-    video = cv2.VideoCapture(f"{os.getcwd()}\{filename}")
+    video = cv2.VideoCapture(f"{os.getcwd()}/{filename}")
     frame_reader = reader(video, *dimensions)
     path = create_frames_folder()
 
