@@ -1,3 +1,5 @@
 /target
-.idea/*
 *.pyc
+/video/frames/
+/video/.idea/
+.idea/
