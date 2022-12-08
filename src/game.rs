@@ -2,8 +2,8 @@
 
 use crate::board::*;
 use crate::piece::*;
+use crate::queue::*;
 use std::fmt::{Display, Formatter};
-use std::collections::VecDeque;
 
 pub struct Game {
     pub board: Board,
@@ -15,9 +15,7 @@ pub struct Game {
 impl Display for Game {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Queue; {}", self.queue)?;
-        write!(f, "{}", self.board)?;
-
-        Ok(())
+        write!(f, "{}", self.board)
     }
 }
 
@@ -53,67 +51,8 @@ impl Game {
             self.board.add((r + row) as usize, (c + col) as usize);
         }
     }
-
-    pub fn piece_down(&mut self) -> bool {false}
-
-    pub fn piece_drop(&mut self) {
-        while self.piece_down() {}
-    }
-
-    pub fn piece_right(&mut self) -> bool {false}
-
-    pub fn piece_left(&mut self) -> bool {false}
-
-    pub fn safe_cw(&mut self) -> bool {false}
-
-    pub fn safe_180(&mut self) -> bool {false}
-
-    pub fn safe_ccw(&mut self) -> bool {false}
 }
 
 fn default_piece_spawn(width: usize, height: usize) -> (i8, i8) {
-    (width as i8 / 2, height as i8)
-}
-
-pub struct Queue {
-    seed: usize,
-    pieces: VecDeque<usize>,
-    a: usize,
-    m: usize,
-}
-
-impl Display for Queue {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.pieces)
-    }
-}
-
-impl Queue {
-    pub fn new(seed: usize) -> Self {
-        Self {seed, pieces: VecDeque::new(), a: 16807, m: 2147483647}
-    }
-
-    pub fn next(&mut self) -> usize {
-        if self.pieces.len() < 10 {
-           self.seven_bag()
-        }
-
-        self.pieces.pop_front().unwrap()
-    }
-
-    fn next_num(&mut self) -> f32 {
-        self.seed = self.a * self.seed % self.m;
-
-        let out = (self.seed - 1) as f32 / self.m as f32;
-        out
-    }
-
-    fn seven_bag(&mut self) {
-        let mut arr = [0, 1, 2, 3, 4, 5, 6];
-        for i in (1..7).rev() {
-            let r = (self.next_num() * (i as f32 + 1.0)) as usize;
-            (arr[i], arr[r]) = (arr[r], arr[i])
-        }
-        self.pieces.extend(arr.iter());
-    }
+    (width as i8 / 2, height as i8 - 2)
 }

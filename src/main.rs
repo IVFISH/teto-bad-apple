@@ -2,6 +2,9 @@ mod analyzer;
 mod board;
 mod game;
 mod piece;
+mod bot;
+mod queue;
+mod control;
 
 use analyzer::*;
 
