@@ -12,7 +12,7 @@ pub fn load_image(frame: usize) -> GrayImage {
 pub fn to_board(img: GrayImage) -> Board {
     let (width, height, data) = (img.width() as usize, img.height() as usize, img.as_bytes());
 
-    Board::new(
+    Board::from_vec(
         (0..height)
             .rev()
             .into_iter()

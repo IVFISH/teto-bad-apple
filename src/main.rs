@@ -1,5 +1,6 @@
 mod analyzer;
 mod board;
+mod game;
 mod piece;
 
 use analyzer::*;
