@@ -31,11 +31,21 @@ impl Board {
         self.arr.push(vec![false; self.width])
     }
 
-    pub fn set_piece(piece: usize) {}
+    pub fn clear_all_lines(&mut self) {
+        let rows: Vec<usize> = self.arr
+            .iter()
+            .enumerate()
+            .filter(|(_, row)|
+                row.iter().all(|x| *x))
+            .map(|(r, _)| r)
+            .collect();
 
-    pub fn in_bounds(&self, row: usize, col: usize) -> bool {
-        row < self.width && col < self.height
+        for row in rows {
+            self.line_clear(row);
+        }
     }
+
+    pub fn set_piece(piece: usize) {}
 
     pub fn piece_collision(&self, piece: usize) -> bool {
         false
@@ -55,6 +65,10 @@ impl Board {
 
     pub fn piece_valid_placement(&self, piece: usize) -> bool {
         self.piece_valid_location(piece) && self.piece_grounded(piece)
+    }
+
+    fn in_bounds(&self, row: usize, col: usize) -> bool {
+        row < self.width && col < self.height
     }
 }
 
