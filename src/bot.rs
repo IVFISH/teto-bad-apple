@@ -25,8 +25,25 @@ impl Bot {
         }
     }
 
-    pub fn immediate_moves(&mut self) {
+    pub fn undo(&mut self) {
+        let mut command = self.stack.pop_front().unwrap();
+        command.undo(&mut self.game);
+    }
 
+    pub fn move_left(&mut self) -> bool {
+        self.piece_move(Box::new(|| (0, -1)))
+    }
+
+    pub fn move_right(&mut self) -> bool {
+        self.piece_move(Box::new(|| (0, 1)))
+    }
+
+    pub fn soft_drop(&mut self) {
+        while self.down() {}
+    }
+
+    fn down(&mut self) -> bool {
+        self.piece_move(Box::new(|| (-1, 0)))
     }
 
     fn piece_move(&mut self, direction: Box<dyn Fn() -> (i8, i8)>) -> bool {
@@ -35,25 +52,22 @@ impl Bot {
         self.stack.get_mut(0).unwrap().execute(&mut self.game)
     }
 
-    pub fn left(&mut self) -> bool {
-        self.piece_move(Box::new(|| (0, -1)))
+    pub fn rotate_cw(&mut self) -> bool {
+        self.piece_rotate(1)
     }
 
-    pub fn right(&mut self) -> bool {
-        self.piece_move(Box::new(|| (0, 1)))
+    pub fn rotate_180(&mut self) -> bool {
+        self.piece_rotate(2)
     }
 
-    fn down(&mut self) -> bool {
-        self.piece_move(Box::new(|| (-1, 0)))
+    pub fn rotate_ccw(&mut self) -> bool {
+        self.piece_rotate(3)
     }
 
-    pub fn soft_drop(&mut self) {
-        while self.down() {}
+    fn piece_rotate(&mut self, direction: usize) -> bool {
+        let command = Box::new(PieceRotate::new(direction));
+        self.stack.push_front(command);
+        self.stack.get_mut(0).unwrap().execute(&mut self.game)
     }
 
-
-    pub fn undo(&mut self) {
-        let mut command = self.stack.pop_front().unwrap();
-        command.undo(&mut self.game);
-    }
 }

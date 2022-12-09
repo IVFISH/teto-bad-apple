@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 
 pub type Point = [i8; 2];
-use data::PIECES;
+
+use data::{PIECES, OFFSETS, PieceLocation, Offset};
+use crate::piece::data::PieceLocations;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Placement {
@@ -21,7 +23,7 @@ impl Placement {
         }
     }
 
-    pub fn rel_locations(&self) -> [Point; 4] {
+    pub fn rel_locations(&self) -> PieceLocation {
         PIECES[self.piece_type][self.rotation_state]
     }
 
@@ -33,25 +35,28 @@ impl Placement {
     pub fn rotate(&mut self, direction: usize) {
         self.rotation_state = (self.rotation_state + direction) % 4;
     }
+
+    pub fn get_offsets(&self, direction: usize) -> Offset {
+        OFFSETS[self.piece_type][self.rotation_state][direction - 1]
+    }
 }
 
 mod data {
+    pub use offsets::*;
+    pub use rotations::*;
     use super::Point;
-    use offsets::*;
-    use rotations::*;
 
     pub const ROTATION_STATES: usize = 4;
     pub const NUM_ROTATION_DIRECTIONS: usize = 3;
     pub const PIECE_SIZE: usize = 4;
     pub const NUM_PIECES: usize = 7;
 
-    pub type PieceLocations = [[Point; PIECE_SIZE]; ROTATION_STATES];
-
-    pub const PIECES: [PieceLocations; NUM_PIECES] = [Z, L, O, S, I, J, T];
-    pub const OFFSETS: [PieceOffsets; NUM_PIECES] = [Z_OFFSET; NUM_PIECES];
-
     mod rotations {
-        use super::PieceLocations;
+        use super::*;
+
+        pub const PIECES: [PieceLocations; NUM_PIECES] = [Z, L, O, S, I, J, T];
+        pub type PieceLocation = [Point; PIECE_SIZE];
+        pub type PieceLocations = [PieceLocation; ROTATION_STATES];
 
         pub const Z: PieceLocations = [
             [[1, -1], [1, 0], [0, 0], [0, 1]],
@@ -104,11 +109,81 @@ mod data {
     }
 
     mod offsets {
+        // note: can try with lazy-static and vectors
+
         use super::*;
 
+        pub const OFFSETS: [PieceOffsets; NUM_PIECES] = [G, G, O, G, I, G, G];
         pub type Offset = [Point; 6];
-        pub type PieceOffsets = [Offset; NUM_ROTATION_DIRECTIONS];
+        pub type PieceOffsets = [[Offset; NUM_ROTATION_DIRECTIONS]; ROTATION_STATES];
 
-        pub const Z_OFFSET: [Offset; NUM_ROTATION_DIRECTIONS] = [[[0, 0]; 6]; 3];
+        pub const G: PieceOffsets = [
+            [
+                [[0, 0], [0, -1], [1, -1], [-2, 0], [-2, -1], [-2, -1]],
+                [[0, 0], [1, 0], [1, 1], [1, -1], [0, 1], [0, -1]],
+                [[0, 0], [0, 1], [1, 1], [-2, 0], [-2, 1], [-2, -1]]
+            ],
+            [
+                [[0, 0], [0, 1], [-1, 1], [2, 0], [2, 1], [2, 1]],
+                [[0, 0], [0, 1], [2, 1], [1, 1], [2, 0], [-1, 0]],
+                [[0, 0], [0, 1], [-1, 1], [2, 0], [2, 1], [2, 1]],
+            ],
+            [
+                [[0, 0], [0, 1], [1, 1], [-2, 0], [-2, 1], [-2, 1]],
+                [[0, 0], [-1, 0], [-1, -1], [-1, 1], [0, -1], [0, 1]],
+                [[0, 0], [0, -1], [1, -1], [-2, 0], [-2, -1], [-2, -1]],
+            ],
+            [
+                [[0, 0], [0, -1], [-1, -1], [2, 0], [2, -1], [2, -1]],
+                [[0, 0], [0, -1], [2, -1], [1, -1], [2, 0], [-1, 0]],
+                [[0, 0], [0, -1], [-1, -1], [2, 0], [2, -1], [2, -1]],
+            ]
+        ];
+
+        pub const O: PieceOffsets = [
+            [
+                [[1, 0]; 6],
+                [[1, 1]; 6],
+                [[0, 1]; 6]
+            ],
+            [
+                [[0, 1]; 6],
+                [[-1, 1]; 6],
+                [[-1, 0]; 6]
+            ],
+            [
+                [[-1, 0]; 6],
+                [[-1, -1]; 6],
+                [[0, -1]; 6]
+            ],
+            [
+                [[0, -1]; 6],
+                [[1, -1]; 6],
+                [[1, 0]; 6]
+            ],
+        ];
+
+        pub const I: PieceOffsets = [
+            [
+                [[0, 1], [0, 2], [0, -1], [-1, -1], [2, 2], [2, 2]],
+                [[-1, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]],
+                [[-1, 0], [-1, -1], [-1, 2], [-2, 2], [2, -1], [2, -1]]
+            ],
+            [
+                [[-1, 0], [-1, -1], [-1, 2], [1, -1], [-2, 2], [-2, 2]],
+                [[-1, -1], [-1, 0], [-1, 0], [-1, 0], [-1, 0], [-1, 0]],
+                [[0, -1], [0, -2], [0, 1], [-2, -2], [1, 1], [1, 1]]
+            ],
+            [
+                [[0, -1], [0, 1], [0, -2], [1, 1], [-2, -2], [-2, -2]],
+                [[1, -1], [0, -1], [0, -1], [0, -1], [0, -1], [0, -1]],
+                [[1, 0], [1, -2], [1, 1], [2, -2], [-1, 1], [-1, 1]]
+            ],
+            [
+                [[1, 0], [1, 1], [1, -2], [-1, 1], [2, -2], [2, -2]],
+                [[1, 1], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0]],
+                [[0, 1], [0, 2], [0, -1], [2, 2], [-1, -1], [-1, -1]]
+            ]
+        ];
     }
 }

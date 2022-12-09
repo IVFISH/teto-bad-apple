@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::collections::VecDeque;
+use crate::piece::Point;
 use crate::game::*;
 
 pub enum Input {
@@ -23,7 +24,7 @@ pub struct PieceMove<F> where F: Fn() -> (i8, i8) {
     dir_gen: F
 }
 
-impl<'a, F> PieceMove<F> where F: Fn() -> (i8, i8) {
+impl<F> PieceMove<F> where F: Fn() -> (i8, i8) {
     pub fn new(dir_gen: F) -> Self {
         Self {
             moved: false,
@@ -38,107 +39,79 @@ impl<F> Command for PieceMove<F> where F: Fn() -> (i8, i8) {
         game.active.shift(y, x);
         self.moved = game.board.piece_valid_location(&game.active);
         if !self.moved {
-            game.active.shift(0, 1);
+            game.active.shift(-y, -x);
         };
 
         self.moved
     }
 
     fn undo(&mut self, game: &mut Game) {
-        println!("{}", self.moved);
         if self.moved {
             game.active.shift(0, 1);
         }
     }
 }
 
-// pub struct PieceLeft<'a> {
-//     game: &'a mut Game,
-//     moved: bool
+pub struct PieceRotate {
+    direction: usize,
+    rotated: bool,
+    kick: Point
+}
+
+impl PieceRotate {
+    pub fn new(direction: usize) -> Self {
+        Self {
+            direction,
+            rotated: false,
+            kick: [0, 0]
+        }
+    }
+}
+
+impl Command for PieceRotate {
+    fn execute(&mut self, game: &mut Game) -> bool {
+        game.active.rotate(self.direction);
+
+        for [y, x] in game.active.get_offsets(self.direction) {
+            let mut command = PieceMove::new(Box::new(|| (y, x)));
+            if command.execute(game) {
+                self.kick = [y, x];
+                self.rotated = true;
+                return true;
+            }
+        }
+
+        game.active.rotate(4 - self.direction);
+        false
+    }
+
+    fn undo(&mut self, game: &mut Game) {
+        if self.rotated {
+            let [y, x] = self.kick;
+            game.active.shift(-y, -x);
+            game.active.rotate(4 - self.direction);
+        }
+    }
+}
+
+// pub struct HardDrop {
+//
 // }
 //
-// impl<'a> PieceLeft<'a> {
-//     pub fn new(game: &'a mut Game) -> Self {
-//         Self {
-//             game,
-//             moved: false
-//         }
-//     }
+// impl HardDrop {
+//
 // }
 //
-// impl Command for PieceLeft<'_> {
-//     fn execute(&mut self) -> bool {
-//         self.game.active.shift(0, -1);
-//         self.moved = self.game.board.piece_valid_location(&self.game.active);
-//
-//         if !self.moved {
-//             self.game.active.shift(0, 1);
-//         };
-//
-//         self.moved
+// impl Command for HardDrop {
+//     fn execute(&mut self, game: &mut Game) -> bool {
+//         todo!()
 //     }
 //
-//     fn undo(&mut self) {
-//         if self.moved {
-//             self.game.active.shift(0, 1);
-//         }
-//     }
-// }
-//
-// pub struct PieceRight<'a> {
-//     game: &'a mut Game,
-//     moved: bool
-// }
-//
-// impl PieceRight<'_> {
-//     pub fn new(game: &mut Game) -> Self {
-//         Self {
-//             game,
-//             moved: false
-//         }
-//     }
-// }
-//
-// impl Command for PieceRight<'_> {
-//     fn execute(&mut self) -> bool {
-//         self.game.active.shift(0, 1);
-//         self.moved = self.game.board.piece_valid_location(&self.game.active);
-//
-//         if !self.moved {
-//             self.game.active.shift(0, -1);
-//         };
-//
-//         self.moved
-//     }
-//
-//     fn undo(&mut self) {
-//         if self.moved {
-//             self.game.active.shift(0, 1);
-//         }
+//     fn undo(&mut self, game: &mut Game) {
+//         todo!()
 //     }
 // }
 
-// pub fn piece_drop(&mut self) {
-//     while self.piece_down() {}
-// }
-//
-// pub fn piece_right(&mut self) -> bool {false}
-//
-// pub fn piece_left(&mut self) -> bool {false}
-//
-// pub fn safe_cw(&mut self) -> bool {false}
-//
-// pub fn safe_180(&mut self) -> bool {false}
-//
-// pub fn safe_ccw(&mut self) -> bool {false}
-
-// pub fn hd(&mut self) {
-//     self.piece_down();
-//     self.set_piece();
-//     let next = self.queue.next();
-//     self.active = self.new_piece(next);
-// }
-//
 // pub fn set_piece(&mut self) {
 //     let (row, col) = (self.active.row, self.active.col);
 //     for [r, c] in self.active.rel_locations() {

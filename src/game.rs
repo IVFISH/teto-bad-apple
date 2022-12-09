@@ -39,7 +39,7 @@ impl Game {
 }
 
 fn default_piece_spawn(height: usize, width: usize) -> (i8, i8) {
-    (height as i8 - 2, width as i8 / 2 - 1)
+    (height as i8 - 3, width as i8 / 2 - 1)
 }
 
 pub fn new_piece(piece_type: usize, height: usize, width: usize) -> Placement {
