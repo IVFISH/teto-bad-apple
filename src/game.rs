@@ -9,12 +9,13 @@ pub struct Game {
     pub board: Board,
     pub queue: Queue,
     pub active: Placement,
-    pub hold: Option<Placement>,
+    pub hold: Option<usize>,
 }
 
 impl Display for Game {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Queue; {}\n", self.queue)?;
+        write!(f, "Hold: {:?}\n", self.hold)?;
         write!(f, "{}", self.board.to_string(&self.active))
     }
 }
@@ -34,7 +35,7 @@ impl Game {
     }
 
     pub fn new_piece(&self, piece_type: usize) -> Placement {
-        new_piece(piece_type, self.board.width, self.board.height)
+        new_piece(piece_type, self.board.height, self.board.width)
     }
 }
 

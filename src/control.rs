@@ -1,10 +1,24 @@
 #![allow(dead_code)]
 
 use std::collections::VecDeque;
+use enum_dispatch::enum_dispatch;
 use crate::piece::{Placement, Point};
 use crate::game::*;
 
-pub trait Command {
+
+#[enum_dispatch]
+pub enum Command {
+    PieceRotate,
+    PieceMove,
+    SoftDrop,
+    SetPiece,
+    NextPiece,
+    Hold,
+    Batch,
+}
+
+#[enum_dispatch(Command)]
+pub trait Executable {
     fn execute(&mut self, game: &mut Game) -> bool;
     fn undo(&mut self, game: &mut Game);
 }
@@ -25,7 +39,7 @@ impl PieceMove {
     }
 }
 
-impl Command for PieceMove {
+impl Executable for PieceMove {
     fn execute(&mut self, game: &mut Game) -> bool {
         game.active.shift(self.dy, self.dx);
         self.moved = game.board.piece_valid_location(&game.active);
@@ -58,7 +72,7 @@ impl PieceRotate {
     }
 }
 
-impl Command for PieceRotate {
+impl Executable for PieceRotate {
     fn execute(&mut self, game: &mut Game) -> bool {
         game.active.rotate(self.direction);
 
@@ -94,7 +108,7 @@ impl SoftDrop {
     }
 }
 
-impl Command for SoftDrop {
+impl Executable for SoftDrop {
     fn execute(&mut self, game: &mut Game) -> bool {
         let mut down = PieceMove::new(-1, 0);
         while down.execute(game) {
@@ -121,7 +135,7 @@ impl SetPiece {
     }
 }
 
-impl Command for SetPiece {
+impl Executable for SetPiece {
     fn execute(&mut self, game: &mut Game) -> bool {
         (self.locations, self.row, self.col) = (game.active.rel_locations(), game.active.row, game.active.col);
         for [r, c] in self.locations {
@@ -142,11 +156,11 @@ pub struct NextPiece {
     next_piece: usize,
 }
 
-impl Command for NextPiece {
+impl Executable for NextPiece {
     fn execute(&mut self, game: &mut Game) -> bool {
         self.cur_piece = game.active;
         self.next_piece = game.queue.next();
-        game.active = new_piece(self.next_piece, game.board.height, game.board.width);
+        game.active = game.new_piece(self.next_piece);
         true
     }
 
@@ -157,25 +171,64 @@ impl Command for NextPiece {
 }
 
 impl NextPiece {
-    pub fn new(cur_piece: Placement) -> Self {
+    pub fn new() -> Self {
         Self {
-            cur_piece,
+            cur_piece: Placement::default(),
             next_piece: 8
         }
     }
 }
-pub struct Batch {
-    pub commands: Vec<Box<dyn Command>>,
+
+#[derive(Default)]
+pub struct Hold {
+    first: bool,
+    before: usize,
+    after: usize,
 }
 
-impl Command for Batch {
+impl Hold {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl Executable for Hold {
+    fn execute(&mut self, game: &mut Game) -> bool {
+        self.before = game.active.piece_type;
+        self.first = game.hold.is_none();
+        if self.first {
+            NextPiece::new().execute(game);
+        } else {
+            game.active = game.new_piece(game.hold.unwrap());
+        }
+
+        self.after = game.active.piece_type;
+        game.hold = Some(self.before);
+        true
+    }
+
+    fn undo(&mut self, game: &mut Game) {
+        if self.first {
+            game.hold = None
+        } else {
+            game.hold = Some(self.before);
+        }
+        game.queue.push(self.after);
+        game.active = game.new_piece(self.before);
+    }
+}
+
+pub struct Batch {
+    pub commands: Vec<Command>,
+}
+
+impl Executable for Batch {
     fn execute(&mut self, game: &mut Game) -> bool {
         for command in self.commands.iter_mut() {
             // should have some behavior for when this doesn't work (aka undo everything)
             // but nah what can go wrong
             command.execute(game);
         }
-
         true
     }
 

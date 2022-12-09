@@ -7,7 +7,7 @@ use crate::control::*;
 
 pub struct Bot {
     game: Game,
-    stack: VecDeque<Box<dyn Command>>
+    stack: VecDeque<Command>,
 }
 
 impl Display for Bot {
@@ -21,7 +21,7 @@ impl Bot {
     pub fn new(height: usize, width: usize, seed: usize) -> Self {
         Self {
             game: Game::new(height, width, seed),
-            stack: VecDeque::new()
+            stack: VecDeque::new(),
         }
     }
 
@@ -31,41 +31,43 @@ impl Bot {
     }
 
     pub fn move_left(&mut self) -> bool {
-        self.action(Box::new(PieceMove::new (0, -1)))
+        self.action(PieceMove::new(0, -1).into())
     }
 
     pub fn move_right(&mut self) -> bool {
-        self.action(Box::new(PieceMove::new(0, 1)))
+        self.action(PieceMove::new(0, 1).into())
     }
 
     pub fn soft_drop(&mut self) -> bool {
-        self.action(Box::new(SoftDrop::new()))
+        self.action(SoftDrop::new().into())
     }
 
     pub fn rotate_cw(&mut self) -> bool {
-        self.action(Box::new(PieceRotate::new(1)))
+        self.action(PieceRotate::new(1).into())
     }
 
     pub fn rotate_180(&mut self) -> bool {
-        self.action(Box::new(PieceRotate::new(2)))
+        self.action(PieceRotate::new(2).into())
     }
-
     pub fn rotate_ccw(&mut self) -> bool {
-        self.action(Box::new(PieceRotate::new(3)))
+        self.action(PieceRotate::new(3).into())
     }
 
     pub fn hard_drop(&mut self) -> bool {
-        let sd = Box::new(SoftDrop::new());
-        let set = Box::new(SetPiece::new());
-        let nxt = Box::new(NextPiece::new(self.game.active));
-        let commands = Batch {commands: vec![sd, set, nxt]};
+        let sd = SoftDrop::new().into();
+        let set = SetPiece::new().into();
+        let nxt = NextPiece::new().into();
+        let commands = Batch { commands: vec![sd, set, nxt] };
 
-        self.action(Box::new(commands))
+        self.action(commands.into())
     }
 
-    fn action(&mut self, command: Box<dyn Command>) -> bool {
+    pub fn hold(&mut self) -> bool {
+        self.action(Hold::new().into())
+    }
+
+    fn action(&mut self, command: Command) -> bool {
         self.stack.push_front(command);
         self.stack.get_mut(0).unwrap().execute(&mut self.game)
     }
-
 }
