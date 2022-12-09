@@ -8,12 +8,20 @@ mod bot;
 mod queue;
 mod control;
 
+use std::collections::HashSet;
 use analyzer::*;
 use bot::*;
 use std::time::Instant;
 
 fn main() {
-    control_test()
+    let mut bot = Bot::new(20, 10, 100);
+    let mut test = HashSet::new();
+    bot.dfs(&mut test);
+    for x in test {
+        println!("{}", bot.game.board.to_string(&x));
+    }
+
+    // control_test()
     // move_benchmark()
 }
 

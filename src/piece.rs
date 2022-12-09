@@ -5,7 +5,7 @@ pub type Point = [i8; 2];
 use data::{PIECES, OFFSETS, PieceLocation, Offset};
 use crate::piece::data::PieceLocations;
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, Hash, Eq, PartialEq)]
 pub struct Placement {
     pub piece_type: usize,
     pub rotation_state: usize,
@@ -37,7 +37,7 @@ impl Placement {
     }
 
     pub fn get_offsets(&self, direction: usize) -> Offset {
-        OFFSETS[self.piece_type][self.rotation_state][direction - 1]
+        OFFSETS[self.piece_type][self.rotation_state][3 - direction]
     }
 }
 

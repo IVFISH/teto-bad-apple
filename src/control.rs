@@ -58,29 +58,27 @@ impl Executable for PieceMove {
 
 pub struct PieceRotate {
     direction: usize,
-    rotated: bool,
-    kick: Point,
+    before: Placement
 }
 
 impl PieceRotate {
     pub fn new(direction: usize) -> Self {
         Self {
             direction,
-            rotated: false,
-            kick: [0, 0],
+            before: Placement::default()
         }
     }
 }
 
 impl Executable for PieceRotate {
     fn execute(&mut self, game: &mut Game) -> bool {
+        self.before = game.active;
         game.active.rotate(self.direction);
 
         for [y, x] in game.active.get_offsets(self.direction) {
-            let mut command = PieceMove::new(y, x);
+            let mut command = PieceMove::new(-y, -x);
+            // println!("{} {}", x, y);
             if command.execute(game) {
-                self.kick = [y, x];
-                self.rotated = true;
                 return true;
             }
         }
@@ -90,11 +88,7 @@ impl Executable for PieceRotate {
     }
 
     fn undo(&mut self, game: &mut Game) {
-        if self.rotated {
-            let [y, x] = self.kick;
-            game.active.shift(-y, -x);
-            game.active.rotate(4 - self.direction);
-        }
+        game.active = self.before;
     }
 }
 

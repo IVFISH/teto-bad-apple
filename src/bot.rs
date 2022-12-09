@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use crate::game::*;
 use crate::control::*;
+use crate::piece::Placement;
 
 pub struct Bot {
-    game: Game,
+    pub game: Game,
     stack: VecDeque<Command>,
 }
 
@@ -22,6 +23,27 @@ impl Bot {
         Self {
             game: Game::new(height, width, seed),
             stack: VecDeque::new(),
+        }
+    }
+
+    pub fn dfs(&mut self, used: &mut HashSet<Placement>) {
+        let commands: Vec<Command> = vec![
+            PieceMove::new(0, -1).into(),
+            PieceMove::new(0, 1).into(),
+            PieceRotate::new(1).into(),
+            PieceRotate::new(2).into(),
+            PieceRotate::new(3).into(),
+        ];
+
+        for command in commands {
+            self.action(command);
+
+            if !used.contains(&self.game.active) {
+                used.insert(self.game.active);
+                self.dfs(used);
+            }
+
+            self.undo();
         }
     }
 
