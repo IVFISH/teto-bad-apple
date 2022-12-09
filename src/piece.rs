@@ -5,7 +5,7 @@ pub type Point = [i8; 2];
 use data::{PIECES, OFFSETS, PieceLocation, Offset};
 use crate::piece::data::PieceLocations;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct Placement {
     pub piece_type: usize,
     pub rotation_state: usize,

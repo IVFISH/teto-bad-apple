@@ -31,41 +31,39 @@ impl Bot {
     }
 
     pub fn move_left(&mut self) -> bool {
-        self.piece_move(Box::new(|| (0, -1)))
+        self.action(Box::new(PieceMove::new (0, -1)))
     }
 
     pub fn move_right(&mut self) -> bool {
-        self.piece_move(Box::new(|| (0, 1)))
+        self.action(Box::new(PieceMove::new(0, 1)))
     }
 
-    pub fn soft_drop(&mut self) {
-        while self.down() {}
-    }
-
-    fn down(&mut self) -> bool {
-        self.piece_move(Box::new(|| (-1, 0)))
-    }
-
-    fn piece_move(&mut self, direction: Box<dyn Fn() -> (i8, i8)>) -> bool {
-        let command = Box::new(PieceMove::new(direction));
-        self.stack.push_front(command);
-        self.stack.get_mut(0).unwrap().execute(&mut self.game)
+    pub fn soft_drop(&mut self) -> bool {
+        self.action(Box::new(SoftDrop::new()))
     }
 
     pub fn rotate_cw(&mut self) -> bool {
-        self.piece_rotate(1)
+        self.action(Box::new(PieceRotate::new(1)))
     }
 
     pub fn rotate_180(&mut self) -> bool {
-        self.piece_rotate(2)
+        self.action(Box::new(PieceRotate::new(2)))
     }
 
     pub fn rotate_ccw(&mut self) -> bool {
-        self.piece_rotate(3)
+        self.action(Box::new(PieceRotate::new(3)))
     }
 
-    fn piece_rotate(&mut self, direction: usize) -> bool {
-        let command = Box::new(PieceRotate::new(direction));
+    pub fn hard_drop(&mut self) -> bool {
+        let sd = Box::new(SoftDrop::new());
+        let set = Box::new(SetPiece::new());
+        let nxt = Box::new(NextPiece::new(self.game.active));
+        let commands = Batch {commands: vec![sd, set, nxt]};
+
+        self.action(Box::new(commands))
+    }
+
+    fn action(&mut self, command: Box<dyn Command>) -> bool {
         self.stack.push_front(command);
         self.stack.get_mut(0).unwrap().execute(&mut self.game)
     }

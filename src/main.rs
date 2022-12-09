@@ -13,8 +13,35 @@ use bot::*;
 use std::time::Instant;
 
 fn main() {
+    control_test()
     // move_benchmark()
 
+}
+
+fn control_test() {
+    let mut bot = Bot::new(20, 10, 100);
+
+    bot.move_left();
+    println!("{}", bot);
+    bot.rotate_cw();
+    println!("{}", bot);
+    bot.soft_drop();
+    println!("{}", bot);
+    bot.rotate_cw();
+    println!("{}", bot);
+    bot.hard_drop();
+    println!("{}", bot);
+
+    bot.undo();
+    println!("{}", bot);
+    bot.undo();
+    println!("{}", bot);
+    bot.undo();
+    println!("{}", bot);
+    bot.undo();
+    println!("{}", bot);
+    bot.undo();
+    println!("{}", bot);
 }
 
 fn move_benchmark() {

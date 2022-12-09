@@ -27,6 +27,10 @@ impl Queue {
         self.pieces.pop_front().unwrap()
     }
 
+    pub fn push(&mut self, piece: usize) {
+        self.pieces.push_front(piece)
+    }
+
     fn next_num(&mut self) -> f32 {
         self.seed = self.a * self.seed % self.m;
 
