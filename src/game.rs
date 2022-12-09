@@ -14,16 +14,16 @@ pub struct Game {
 
 impl Display for Game {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Queue; {}", self.queue)?;
-        write!(f, "{}", self.board)
+        write!(f, "Queue; {}\n", self.queue)?;
+        write!(f, "{}", self.board.to_string(&self.active))
     }
 }
 
 impl Game {
-    pub fn new(&mut self, width: usize, height: usize, seed: usize) -> Self {
+    pub fn new(height: usize, width: usize, seed: usize) -> Self {
         let mut queue = Queue::new(seed);
         let board = Board::new(width, height);
-        let active = self.new_piece(queue.next());
+        let active = new_piece(queue.next(), height, width);
 
         Self {
             board,
@@ -34,25 +34,15 @@ impl Game {
     }
 
     pub fn new_piece(&self, piece_type: usize) -> Placement {
-        let (row, col) = default_piece_spawn(self.board.width, self.board.height);
-        Placement::new(piece_type, 0, row, col)
-    }
-
-    pub fn hd(&mut self) {
-        self.piece_down();
-        self.set_piece();
-        let next = self.queue.next();
-        self.active = self.new_piece(next);
-    }
-
-    pub fn set_piece(&mut self) {
-        let (row, col) = (self.active.row, self.active.col);
-        for [r, c] in self.active.rel_locations() {
-            self.board.add((r + row) as usize, (c + col) as usize);
-        }
+        new_piece(piece_type, self.board.width, self.board.height)
     }
 }
 
-fn default_piece_spawn(width: usize, height: usize) -> (i8, i8) {
-    (width as i8 / 2, height as i8 - 2)
+fn default_piece_spawn(height: usize, width: usize) -> (i8, i8) {
+    (height as i8 - 2, width as i8 / 2 - 1)
+}
+
+pub fn new_piece(piece_type: usize, height: usize, width: usize) -> Placement {
+    let (row, col) = default_piece_spawn(height, width);
+    Placement::new(piece_type, 0, row, col)
 }

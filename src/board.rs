@@ -16,7 +16,7 @@ impl Board {
     }
 
     pub fn new(width: usize, height: usize) -> Self {
-        let arr = vec![vec![false; height]; width];
+        let arr = vec![vec![false; width]; height];
         Self { arr, width, height }
     }
 
@@ -55,17 +55,17 @@ impl Board {
         piece
             .rel_locations()
             .iter()
-            .all(|[r, c]| !self.get((r + piece.row) as usize, (c + piece.col) as usize))
+            .any(|[r, c]| self.get((r + piece.row) as usize, (c + piece.col) as usize))
     }
 
     pub fn piece_in_bounds(&self, piece: &Placement) -> bool {
         piece.rel_locations().iter().all(|[r, c]| {
-            ((r + piece.row) as usize) < self.width && ((c + piece.col) as usize) < self.height
+            ((r + piece.row) as usize) < self.height && ((c + piece.col) as usize) < self.width
         })
     }
 
     pub fn piece_valid_location(&self, piece: &Placement) -> bool {
-        !self.piece_collision(piece) && self.piece_in_bounds(piece)
+        self.piece_in_bounds(piece) && !self.piece_collision(piece)
     }
 
     pub fn piece_grounded(&self, piece: &Placement) -> bool {
@@ -93,7 +93,7 @@ impl Board {
         for row in (0..self.height).rev() {
             for col in 0..self.width {
                 if self.get(row, col)
-                    || locations.contains(&[row as i8 + piece.row, col as i8 + piece.col])
+                    || locations.contains(&[row as i8 - piece.row, col as i8 - piece.col])
                 {
                     out.push_str("■ ");
                 } else {
