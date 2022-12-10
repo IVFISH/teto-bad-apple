@@ -1,10 +1,48 @@
 #![allow(dead_code)]
 
+use std::cmp::Ordering;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
+use crate::board::Board;
 use crate::game::*;
 use crate::control::*;
 use crate::piece::Placement;
+
+pub struct ComparablePlacement<'a> {
+    pub placement: Placement,
+    pub board: &'a Board,
+}
+
+
+impl PartialEq<Self> for ComparablePlacement<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.placement.eq(&other.placement)
+    }
+}
+
+impl PartialOrd for ComparablePlacement<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        println!("{}{}", score(&self.placement, &self.board), &score(&other.placement, &other.board));
+        score(&self.placement, &self.board)
+            .partial_cmp(&score(&other.placement, &other.board))
+    }
+}
+
+fn score(piece: &Placement, board: &Board) -> i8 {
+    let mut out = 0;
+    for [y, x] in piece.rel_locations() {
+        let y = (y + piece.row) as usize;
+        let x = (x + piece.col) as usize;
+        if board.get(y, x) {
+            out -= 1;
+        } else {
+            out += 2;
+        }
+    }
+
+    out
+}
+
 
 pub struct Bot {
     pub game: Game,
@@ -26,24 +64,55 @@ impl Bot {
         }
     }
 
-    pub fn dfs(&mut self, used: &mut HashSet<Placement>) {
+    pub fn search(&mut self, used: &mut HashSet<Placement>) {
         let commands: Vec<Command> = vec![
             PieceMove::new(0, -1).into(),
             PieceMove::new(0, 1).into(),
             PieceRotate::new(1).into(),
             PieceRotate::new(2).into(),
             PieceRotate::new(3).into(),
+            SoftDrop::new().into(),
         ];
 
         for command in commands {
             self.action(command);
-
             if !used.contains(&self.game.active) {
                 used.insert(self.game.active);
-                self.dfs(used);
+                self.search(used);
             }
-
             self.undo();
+        }
+    }
+
+    pub fn dfs(&mut self) -> HashSet<Placement> {
+        let mut used = HashSet::new();
+        self.search(&mut used);
+        used
+            .into_iter()
+            .filter(
+                |placement| self.game.board.piece_valid_placement(placement)
+            ).collect()
+    }
+
+    pub fn build_pattern(&mut self, board: &Board) {
+        loop {
+            let placements = self.dfs();
+            println!("{}", placements.len());
+            let mut ordered: Vec<ComparablePlacement> = placements
+                .iter()
+                .map(|&placement| ComparablePlacement {
+                    placement,
+                    board,
+                }).collect();
+            println!("{}", ordered.len());
+            ordered.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            let ComparablePlacement {placement, board} = ordered.pop().unwrap();
+            if score(&placement, board) < 0 {
+                self.game.active = ordered.pop().unwrap().placement;
+                self.hard_drop();
+                continue;
+            }
+            break
         }
     }
 

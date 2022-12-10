@@ -14,12 +14,13 @@ use bot::*;
 use std::time::Instant;
 
 fn main() {
-    let mut bot = Bot::new(20, 10, 100);
-    let mut test = HashSet::new();
-    bot.dfs(&mut test);
-    for x in test {
-        println!("{}", bot.game.board.to_string(&x));
-    }
+    let board = to_board(load_image(210));
+    println!("{}", board);
+
+    let mut bot = Bot::new(90, 160, 100);
+    println!("{}", bot);
+    bot.build_pattern(&board);
+    println!("{}", bot);
 
     // control_test()
     // move_benchmark()

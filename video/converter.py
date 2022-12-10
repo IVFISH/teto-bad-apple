@@ -63,15 +63,16 @@ def create_frames_folder():
 def main():
     filename = "bad_apple.mp4"
     dimensions = 160, 90
+    start = 0
     video = cv2.VideoCapture(f"{os.getcwd()}/{filename}")
-    frame_reader = reader(video, *dimensions)
+    frame_reader = reader(video, *dimensions, start_frame=start + 1)
     path = create_frames_folder()
 
     for i, frame in enumerate(frame_reader):
         for _ in range(30):
             next(frame_reader)
-
-        cv2.imwrite(str(path / f"frame{i * 30}.jpg"), frame)
+        print(frame)
+        cv2.imwrite(str(path / f"frame{i * 30 + start}.jpg"), frame)
         
         if i > 20:
             break
