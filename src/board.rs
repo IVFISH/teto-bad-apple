@@ -3,7 +3,7 @@ use crate::piece::*;
 use std::fmt::{Display, Formatter};
 
 pub struct Board {
-    arr: Vec<Vec<bool>>,
+    pub arr: Vec<Vec<bool>>,
     pub width: usize,
     pub height: usize,
 }
@@ -32,22 +32,13 @@ impl Board {
         self.arr[row][col] = false;
     }
 
-    pub fn line_clear(&mut self, row: usize) {
-        self.arr.remove(row);
-        self.arr.push(vec![false; self.width])
-    }
+    pub fn line_clear(&mut self, row: usize) -> Option<Vec<bool>> {
+        self.arr.push(vec![false; self.width]);
 
-    pub fn clear_all_lines(&mut self) {
-        let rows: Vec<usize> = self
-            .arr
-            .iter()
-            .enumerate()
-            .filter(|(_, row)| row.iter().all(|x| *x))
-            .map(|(r, _)| r)
-            .collect();
-
-        for row in rows {
-            self.line_clear(row);
+        if self.arr[row].iter().all(|&x| x) {
+             Some(self.arr.remove(row))
+        } else {
+            None
         }
     }
 

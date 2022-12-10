@@ -161,8 +161,9 @@ impl Bot {
     pub fn hard_drop(&mut self) -> bool {
         let sd = SoftDrop::new().into();
         let set = SetPiece::new().into();
+        let clr = ClearLines::new().into();
         let nxt = NextPiece::new().into();
-        let commands = Batch { commands: vec![sd, set, nxt] };
+        let commands = Batch { commands: vec![sd, set, clr, nxt] };
 
         self.action(commands.into())
     }

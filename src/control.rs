@@ -14,6 +14,7 @@ pub enum Command {
     SetPiece,
     NextPiece,
     Hold,
+    ClearLines,
     Batch,
 }
 
@@ -209,6 +210,35 @@ impl Executable for Hold {
         }
         game.queue.push(self.after);
         game.active = game.new_piece(self.before);
+    }
+}
+
+#[derive(Default)]
+pub struct ClearLines {
+    line_indices: Vec<(usize, Vec<bool>)>
+}
+
+impl ClearLines {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl Executable for ClearLines {
+    fn execute(&mut self, game: &mut Game) -> bool {
+        for row in 0..game.board.height {
+            if let Some(line) = game.board.line_clear(row) {
+                self.line_indices.push((row, line));
+            }
+        }
+        true
+    }
+
+    fn undo(&mut self, game: &mut Game) {
+        self.line_indices.reverse();
+        while let Some((index, vec)) = self.line_indices.pop() {
+            game.board.arr.insert(index, vec);
+        }
     }
 }
 
