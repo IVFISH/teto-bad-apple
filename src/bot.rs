@@ -7,34 +7,7 @@ use crate::piece::Placement;
 use std::cmp::Ordering;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::{Debug, Display, Formatter};
-
-pub struct ComparablePlacement<'a> {
-    pub placement: Placement,
-    pub board: &'a Board,
-    pub row: i8,
-}
-
-impl Debug for ComparablePlacement<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.placement)
-    }
-}
-
-impl PartialEq<Self> for ComparablePlacement<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        self.placement.eq(&other.placement)
-    }
-}
-
-impl PartialOrd for ComparablePlacement<'_> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        score(&self.placement, &self.board, self.row).partial_cmp(&score(
-            &other.placement,
-            &other.board,
-            other.row,
-        ))
-    }
-}
+use itertools::Itertools;
 
 fn score(piece: &Placement, board: &Board, row: i8) -> i8 {
     let mut out = 0;
@@ -94,11 +67,16 @@ impl Bot {
     }
 
     fn filtered_search(&mut self, base: &mut PlacementActions) -> HashSet<PlacementActions> {
-        // maybe add hold sometime
         let mut used = HashSet::new();
         self.action(base.clone().into());
         self.search(base, &mut used);
         self.undo();
+
+        base.batch.commands.push_back(Hold::new().into());
+        self.action(base.clone().into());
+        self.search(base, &mut used);
+        self.undo();
+        base.batch.commands.pop_back();
 
         used.into_iter()
             .filter(|placement| self.game.board.piece_valid_placement(&placement.placement))

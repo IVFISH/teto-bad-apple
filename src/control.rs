@@ -216,11 +216,11 @@ impl Executable for Hold {
 
     fn undo(&mut self, game: &mut Game) {
         if self.first {
-            game.hold = None
+            game.hold = None;
+            game.queue.push(self.after);
         } else {
             game.hold = Some(self.before);
         }
-        game.queue.push(self.after);
         game.active = game.new_piece(self.before);
     }
 }

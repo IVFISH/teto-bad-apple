@@ -20,12 +20,13 @@ fn move_gen_test() {
     // bot.game.board.bulk_add(board);
     println!("{}", bot);
 
-
-    let actions = bot.look_ahead(3);
+    // let now = Instant::now();
+    let actions = bot.look_ahead(2);
+    // println!("{}", now.elapsed().as_millis());
     for action in actions {
         bot.action(action.batch.into());
         println!("{}", bot);
-        // std::thread::sleep(Duration::from_millis(200));
+        std::thread::sleep(Duration::from_millis(200));
         bot.undo();
     }
 }
