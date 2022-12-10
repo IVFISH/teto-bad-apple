@@ -14,11 +14,14 @@ use bot::*;
 use std::time::Instant;
 
 fn main() {
+    std::env::set_var("RUST_BACKTRACE", "1");
+
     let board = to_board(load_image(210));
     println!("{}", board);
 
-    let mut bot = Bot::new(90, 160, 100);
-    println!("{}", bot);
+    let mut bot = Bot::new(40, 40, 100);
+    // println!("{:?}", bot.game.active);
+    // bot.build_row(&board, 0);
     bot.build_pattern(&board);
     println!("{}", bot);
 

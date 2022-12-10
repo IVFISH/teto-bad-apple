@@ -2,7 +2,7 @@
 
 use std::cmp::Ordering;
 use std::collections::{HashSet, VecDeque};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use crate::board::Board;
 use crate::game::*;
 use crate::control::*;
@@ -11,6 +11,13 @@ use crate::piece::Placement;
 pub struct ComparablePlacement<'a> {
     pub placement: Placement,
     pub board: &'a Board,
+    pub row: i8,
+}
+
+impl Debug for ComparablePlacement<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.placement)
+    }
 }
 
 
@@ -22,24 +29,26 @@ impl PartialEq<Self> for ComparablePlacement<'_> {
 
 impl PartialOrd for ComparablePlacement<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        println!("{}{}", score(&self.placement, &self.board), &score(&other.placement, &other.board));
-        score(&self.placement, &self.board)
-            .partial_cmp(&score(&other.placement, &other.board))
+        score(&self.placement, &self.board, self.row)
+            .partial_cmp(&score(&other.placement, &other.board, other.row))
     }
 }
 
-fn score(piece: &Placement, board: &Board) -> i8 {
+fn score(piece: &Placement, board: &Board, row: i8) -> i8 {
     let mut out = 0;
     for [y, x] in piece.rel_locations() {
-        let y = (y + piece.row) as usize;
-        let x = (x + piece.col) as usize;
-        if board.get(y, x) {
-            out -= 1;
+        let y = y + piece.row;
+        let x = x + piece.col ;
+        if board.get(y as usize, x as usize) {
+            if row == y {
+                out += 3;
+            } else {
+                out -= 2;
+            }
         } else {
-            out += 2;
+            out -= 20;
         }
     }
-
     out
 }
 
@@ -95,19 +104,24 @@ impl Bot {
     }
 
     pub fn build_pattern(&mut self, board: &Board) {
+        for row in 0..board.height {
+            println!("{}", self);
+            self.build_row(board, row as i8);
+        }
+    }
+    pub fn build_row(&mut self, board: &Board, row: i8) {
         loop {
             let placements = self.dfs();
-            println!("{}", placements.len());
             let mut ordered: Vec<ComparablePlacement> = placements
                 .iter()
                 .map(|&placement| ComparablePlacement {
                     placement,
                     board,
+                    row
                 }).collect();
-            println!("{}", ordered.len());
             ordered.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            let ComparablePlacement {placement, board} = ordered.pop().unwrap();
-            if score(&placement, board) < 0 {
+            let ComparablePlacement {placement, board, row} = ordered.pop().unwrap();
+            if score(&placement, board, row) > 0 {
                 self.game.active = ordered.pop().unwrap().placement;
                 self.hard_drop();
                 continue;

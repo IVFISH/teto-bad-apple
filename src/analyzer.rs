@@ -2,6 +2,7 @@
 use crate::board::Board;
 use image::*;
 use std::path::Path;
+use image::imageops::crop;
 
 pub fn load_image(frame: usize) -> GrayImage {
     let filename = format!("video/frames/frame{}.jpg", frame);
@@ -10,6 +11,7 @@ pub fn load_image(frame: usize) -> GrayImage {
 }
 
 pub fn to_board(img: GrayImage) -> Board {
+    let img = crop(&mut img.clone(), 30, 40, 40, 40).to_image();
     let (width, height, data) = (img.width() as usize, img.height() as usize, img.as_bytes());
     Board::from_vec(
         (0..height)
