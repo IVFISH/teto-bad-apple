@@ -16,6 +16,8 @@ pub enum Command {
     Hold,
     ClearLines,
     Batch,
+    HardDrop,
+    PlacementActions,
 }
 
 #[enum_dispatch(Command)]
@@ -252,9 +254,38 @@ impl Executable for ClearLines {
     }
 }
 
+#[derive(Clone, Hash, Eq, PartialEq)]
+pub struct HardDrop {
+    batch: Batch,
+}
+
+impl HardDrop {
+    pub fn new() -> Self {
+        let sd = SoftDrop::new().into();
+        let set = SetPiece::new().into();
+        let clr = ClearLines::new().into();
+        let nxt = NextPiece::new().into();
+
+        let batch = Batch {
+            commands: VecDeque::from([sd, set, clr, nxt])
+        };
+        Self { batch }
+    }
+}
+
+impl Executable for HardDrop {
+    fn execute(&mut self, game: &mut Game) -> bool {
+        self.batch.execute(game)
+    }
+
+    fn undo(&mut self, game: &mut Game) {
+        self.batch.undo(game)
+    }
+}
+
 #[derive(Default, Clone, Hash, Eq, PartialEq)]
 pub struct Batch {
-    pub commands: Vec<Command>,
+    pub commands: VecDeque<Command>,
 }
 
 impl Batch {
@@ -262,6 +293,7 @@ impl Batch {
         Self::default()
     }
 }
+
 impl Executable for Batch {
     fn execute(&mut self, game: &mut Game) -> bool {
         for command in self.commands.iter_mut() {
@@ -282,7 +314,7 @@ impl Executable for Batch {
 #[derive(Clone, Hash, Eq, PartialEq, Default)]
 pub struct PlacementActions {
     pub batch: Batch,
-    pub placement: Placement
+    pub placement: Placement,
 }
 
 impl PlacementActions {
@@ -292,5 +324,15 @@ impl PlacementActions {
 }
 
 pub fn duplicate_placement(used: &HashSet<PlacementActions>, piece: &Placement) -> bool {
-    used.iter().any(|PlacementActions {batch: _, placement}| placement == piece)
+    used.iter().any(|PlacementActions { batch: _, placement }| placement == piece)
+}
+
+impl Executable for PlacementActions {
+    fn execute(&mut self, game: &mut Game) -> bool {
+        self.batch.execute(game)
+    }
+
+    fn undo(&mut self, game: &mut Game) {
+        self.batch.undo(game)
+    }
 }

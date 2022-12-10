@@ -20,6 +20,12 @@ impl Board {
         Self { arr, width, height }
     }
 
+    pub fn bulk_add(&mut self, points: Vec<(usize, usize)>) {
+        for (row, col) in points {
+            self.add(row, col);
+        }
+    }
+
     pub fn get(&self, row: usize, col: usize) -> bool {
         self.arr[row][col]
     }
