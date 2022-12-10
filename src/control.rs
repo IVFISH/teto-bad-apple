@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
-use std::collections::VecDeque;
-use enum_dispatch::enum_dispatch;
-use crate::piece::{Placement, Point};
 use crate::game::*;
-
+use crate::piece::{Placement, Point};
+use enum_dispatch::enum_dispatch;
+use std::collections::{HashSet, VecDeque};
 
 #[enum_dispatch]
+#[derive(Clone, Hash, Eq, PartialEq)]
 pub enum Command {
     PieceRotate,
     PieceMove,
@@ -24,6 +24,7 @@ pub trait Executable {
     fn undo(&mut self, game: &mut Game);
 }
 
+#[derive(Clone, Hash, Eq, PartialEq)]
 pub struct PieceMove {
     moved: bool,
     dy: i8,
@@ -57,16 +58,17 @@ impl Executable for PieceMove {
     }
 }
 
+#[derive(Clone, Hash, Eq, PartialEq)]
 pub struct PieceRotate {
     direction: usize,
-    before: Placement
+    before: Placement,
 }
 
 impl PieceRotate {
     pub fn new(direction: usize) -> Self {
         Self {
             direction,
-            before: Placement::default()
+            before: Placement::default(),
         }
     }
 }
@@ -93,6 +95,7 @@ impl Executable for PieceRotate {
     }
 }
 
+#[derive(Clone, Hash, Eq, PartialEq)]
 pub struct SoftDrop {
     distance: i8,
 }
@@ -113,15 +116,15 @@ impl Executable for SoftDrop {
     }
 
     fn undo(&mut self, game: &mut Game) {
-        PieceMove::new(self.distance, 0).execute(game);
+        game.active.shift(self.distance, 0);
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Hash, Eq, PartialEq)]
 pub struct SetPiece {
     locations: [Point; 4],
     row: i8,
-    col: i8
+    col: i8,
 }
 
 impl SetPiece {
@@ -132,20 +135,27 @@ impl SetPiece {
 
 impl Executable for SetPiece {
     fn execute(&mut self, game: &mut Game) -> bool {
-        (self.locations, self.row, self.col) = (game.active.rel_locations(), game.active.row, game.active.col);
+        (self.locations, self.row, self.col) = (
+            game.active.rel_locations(),
+            game.active.row,
+            game.active.col,
+        );
         for [r, c] in self.locations {
-            game.board.add((r + self.row) as usize, (c + self.col) as usize);
+            game.board
+                .add((r + self.row) as usize, (c + self.col) as usize);
         }
         true
     }
 
     fn undo(&mut self, game: &mut Game) {
         for [r, c] in self.locations {
-            game.board.remove((r + self.row) as usize, (c + self.col) as usize);
+            game.board
+                .remove((r + self.row) as usize, (c + self.col) as usize);
         }
     }
 }
 
+#[derive(Clone, Hash, Eq, PartialEq)]
 pub struct NextPiece {
     cur_piece: Placement,
     next_piece: usize,
@@ -169,12 +179,12 @@ impl NextPiece {
     pub fn new() -> Self {
         Self {
             cur_piece: Placement::default(),
-            next_piece: 8
+            next_piece: 8,
         }
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Hash, Eq, PartialEq)]
 pub struct Hold {
     first: bool,
     before: usize,
@@ -213,9 +223,9 @@ impl Executable for Hold {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Hash, Eq, PartialEq)]
 pub struct ClearLines {
-    line_indices: Vec<(usize, Vec<bool>)>
+    line_indices: Vec<(usize, Vec<bool>)>,
 }
 
 impl ClearLines {
@@ -242,10 +252,16 @@ impl Executable for ClearLines {
     }
 }
 
+#[derive(Default, Clone, Hash, Eq, PartialEq)]
 pub struct Batch {
     pub commands: Vec<Command>,
 }
 
+impl Batch {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
 impl Executable for Batch {
     fn execute(&mut self, game: &mut Game) -> bool {
         for command in self.commands.iter_mut() {
@@ -261,4 +277,20 @@ impl Executable for Batch {
             command.undo(game);
         }
     }
+}
+
+#[derive(Clone, Hash, Eq, PartialEq, Default)]
+pub struct PlacementActions {
+    pub batch: Batch,
+    pub placement: Placement
+}
+
+impl PlacementActions {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+pub fn duplicate_placement(used: &HashSet<PlacementActions>, piece: &Placement) -> bool {
+    used.iter().any(|PlacementActions {batch: _, placement}| placement == piece)
 }

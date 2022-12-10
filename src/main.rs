@@ -2,29 +2,36 @@
 
 mod analyzer;
 mod board;
+mod bot;
+mod control;
 mod game;
 mod piece;
-mod bot;
 mod queue;
-mod control;
 
-use std::collections::HashSet;
 use analyzer::*;
 use bot::*;
+use std::collections::HashSet;
 use std::time::Instant;
+use crate::control::{Executable, PlacementActions};
 
 fn main() {
-    std::env::set_var("RUST_BACKTRACE", "1");
-
-    let board = to_board(load_image(210));
-    println!("{}", board);
-
-    let mut bot = Bot::new(40, 40, 100);
+    // let board = to_board(load_image(210));
+    // println!("{}", board);
+    //
+    // let mut bot = Bot::new(40, 40, 100);
     // println!("{:?}", bot.game.active);
     // bot.build_row(&board, 0);
-    bot.build_pattern(&board);
-    println!("{}", bot);
+    // bot.build_pattern(&board);
+    // println!("{}", bot);
 
+    let mut bot = Bot::new(20, 10, 100);
+    let out = bot.dfs();
+    println!("{}", out.len());
+    for PlacementActions {placement: _, mut batch} in out {
+        bot.action(batch.into());
+        println!("{}", bot);
+        bot.undo();
+    }
     // control_test()
     // move_benchmark()
 }
@@ -67,7 +74,6 @@ fn control_test() {
     println!("{}", bot);
     bot.undo();
     println!("{}", bot);
-
 }
 
 fn move_benchmark() {
@@ -82,10 +88,11 @@ fn move_benchmark() {
 
     let elapsed = now.elapsed();
     let time = elapsed / (num_iterations * 2);
-    println!("Moving side to side takes {} nanoseconds on average.", time.as_nanos());
-
+    println!(
+        "Moving side to side takes {} nanoseconds on average.",
+        time.as_nanos()
+    );
 }
-
 
 fn some_frame_thing() {
     for frame in 0..=20 {

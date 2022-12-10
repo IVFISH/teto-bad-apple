@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
+use crate::board::Board;
+use crate::control::*;
+use crate::game::*;
+use crate::piece::Placement;
 use std::cmp::Ordering;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::{Debug, Display, Formatter};
-use crate::board::Board;
-use crate::game::*;
-use crate::control::*;
-use crate::piece::Placement;
 
 pub struct ComparablePlacement<'a> {
     pub placement: Placement,
@@ -20,7 +20,6 @@ impl Debug for ComparablePlacement<'_> {
     }
 }
 
-
 impl PartialEq<Self> for ComparablePlacement<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.placement.eq(&other.placement)
@@ -29,8 +28,11 @@ impl PartialEq<Self> for ComparablePlacement<'_> {
 
 impl PartialOrd for ComparablePlacement<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        score(&self.placement, &self.board, self.row)
-            .partial_cmp(&score(&other.placement, &other.board, other.row))
+        score(&self.placement, &self.board, self.row).partial_cmp(&score(
+            &other.placement,
+            &other.board,
+            other.row,
+        ))
     }
 }
 
@@ -38,7 +40,7 @@ fn score(piece: &Placement, board: &Board, row: i8) -> i8 {
     let mut out = 0;
     for [y, x] in piece.rel_locations() {
         let y = y + piece.row;
-        let x = x + piece.col ;
+        let x = x + piece.col;
         if board.get(y as usize, x as usize) {
             if row == y {
                 out += 3;
@@ -51,7 +53,6 @@ fn score(piece: &Placement, board: &Board, row: i8) -> i8 {
     }
     out
 }
-
 
 pub struct Bot {
     pub game: Game,
@@ -73,7 +74,7 @@ impl Bot {
         }
     }
 
-    pub fn search(&mut self, used: &mut HashSet<Placement>) {
+    pub fn search(&mut self, base: &mut PlacementActions, used: &mut HashSet<PlacementActions>) {
         let commands: Vec<Command> = vec![
             PieceMove::new(0, -1).into(),
             PieceMove::new(0, 1).into(),
@@ -84,23 +85,25 @@ impl Bot {
         ];
 
         for command in commands {
-            self.action(command);
-            if !used.contains(&self.game.active) {
-                used.insert(self.game.active);
-                self.search(used);
+            if self.action(command.clone()) && !duplicate_placement(&used, &self.game.active) {
+                base.batch.commands.push(command);
+                base.placement = self.game.active;
+                used.insert(base.clone());
+                self.search(base, used);
+                base.batch.commands.pop();
             }
             self.undo();
+            base.placement = self.game.active;
         }
     }
 
-    pub fn dfs(&mut self) -> HashSet<Placement> {
+    pub fn dfs(&mut self) -> HashSet<PlacementActions> {
         let mut used = HashSet::new();
-        self.search(&mut used);
-        used
-            .into_iter()
-            .filter(
-                |placement| self.game.board.piece_valid_placement(placement)
-            ).collect()
+        let mut base = PlacementActions { batch: Batch::new(), placement: self.game.active };
+        self.search(&mut base, &mut used);
+        used.into_iter()
+            .filter(|placement| self.game.board.piece_valid_placement(&placement.placement))
+            .collect()
     }
 
     pub fn build_pattern(&mut self, board: &Board) {
@@ -114,19 +117,24 @@ impl Bot {
             let placements = self.dfs();
             let mut ordered: Vec<ComparablePlacement> = placements
                 .iter()
-                .map(|&placement| ComparablePlacement {
-                    placement,
+                .map(|placement| ComparablePlacement {
+                    placement: placement.placement,
                     board,
-                    row
-                }).collect();
+                    row,
+                })
+                .collect();
             ordered.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            let ComparablePlacement {placement, board, row} = ordered.pop().unwrap();
+            let ComparablePlacement {
+                placement,
+                board,
+                row,
+            } = ordered.pop().unwrap();
             if score(&placement, board, row) > 0 {
                 self.game.active = ordered.pop().unwrap().placement;
                 self.hard_drop();
                 continue;
             }
-            break
+            break;
         }
     }
 
@@ -163,7 +171,9 @@ impl Bot {
         let set = SetPiece::new().into();
         let clr = ClearLines::new().into();
         let nxt = NextPiece::new().into();
-        let commands = Batch { commands: vec![sd, set, clr, nxt] };
+        let commands = Batch {
+            commands: vec![sd, set, clr, nxt]
+        };
 
         self.action(commands.into())
     }
@@ -172,7 +182,7 @@ impl Bot {
         self.action(Hold::new().into())
     }
 
-    fn action(&mut self, command: Command) -> bool {
+    pub(crate) fn action(&mut self, command: Command) -> bool {
         self.stack.push_front(command);
         self.stack.get_mut(0).unwrap().execute(&mut self.game)
     }

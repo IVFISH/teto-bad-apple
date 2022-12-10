@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter};
 use std::collections::VecDeque;
+use std::fmt::{Display, Formatter};
 
 pub struct Queue {
     seed: usize,
@@ -16,12 +16,17 @@ impl Display for Queue {
 
 impl Queue {
     pub fn new(seed: usize) -> Self {
-        Self {seed, pieces: VecDeque::new(), a: 16807, m: 2147483647}
+        Self {
+            seed,
+            pieces: VecDeque::new(),
+            a: 16807,
+            m: 2147483647,
+        }
     }
 
     pub fn next(&mut self) -> usize {
         if self.pieces.len() < 10 {
-           self.seven_bag()
+            self.seven_bag()
         }
 
         self.pieces.pop_front().unwrap()

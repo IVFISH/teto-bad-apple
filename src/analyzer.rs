@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 use crate::board::Board;
+use image::imageops::crop;
 use image::*;
 use std::path::Path;
-use image::imageops::crop;
 
 pub fn load_image(frame: usize) -> GrayImage {
     let filename = format!("video/frames/frame{}.jpg", frame);

@@ -36,7 +36,7 @@ impl Board {
         self.arr.push(vec![false; self.width]);
 
         if self.arr[row].iter().all(|&x| x) {
-             Some(self.arr.remove(row))
+            Some(self.arr.remove(row))
         } else {
             None
         }
@@ -83,8 +83,7 @@ impl Board {
 
         for row in (0..self.height).rev() {
             for col in 0..self.width {
-                if self.get(row, col)
-                {
+                if self.get(row, col) {
                     out.push_str("■ ");
                 } else if locations.contains(&[row as i8 - piece.row, col as i8 - piece.col]) {
                     out.push_str("■ ");
