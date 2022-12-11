@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 
 pub struct Queue {
     seed: usize,
-    pieces: VecDeque<usize>,
+    pub pieces: VecDeque<usize>,
     a: usize,
     m: usize,
 }

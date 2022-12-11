@@ -6,7 +6,7 @@ use enum_dispatch::enum_dispatch;
 use std::collections::{HashSet, VecDeque};
 
 #[enum_dispatch]
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub enum Command {
     PieceRotate,
     PieceMove,
@@ -26,7 +26,7 @@ pub trait Executable {
     fn undo(&mut self, game: &mut Game);
 }
 
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct PieceMove {
     moved: bool,
     dy: i8,
@@ -60,7 +60,7 @@ impl Executable for PieceMove {
     }
 }
 
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct PieceRotate {
     direction: usize,
     before: Placement,
@@ -97,7 +97,7 @@ impl Executable for PieceRotate {
     }
 }
 
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct SoftDrop {
     distance: i8,
 }
@@ -122,7 +122,7 @@ impl Executable for SoftDrop {
     }
 }
 
-#[derive(Default, Clone, Hash, Eq, PartialEq)]
+#[derive(Default, Clone, Hash, Eq, PartialEq, Debug)]
 pub struct SetPiece {
     locations: [Point; 4],
     row: i8,
@@ -157,7 +157,7 @@ impl Executable for SetPiece {
     }
 }
 
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct NextPiece {
     cur_piece: Placement,
     next_piece: usize,
@@ -186,7 +186,7 @@ impl NextPiece {
     }
 }
 
-#[derive(Default, Clone, Hash, Eq, PartialEq)]
+#[derive(Default, Clone, Hash, Eq, PartialEq, Debug)]
 pub struct Hold {
     first: bool,
     before: usize,
@@ -225,7 +225,7 @@ impl Executable for Hold {
     }
 }
 
-#[derive(Default, Clone, Hash, Eq, PartialEq)]
+#[derive(Default, Clone, Hash, Eq, PartialEq, Debug)]
 pub struct ClearLines {
     line_indices: Vec<(usize, Vec<bool>)>,
 }
@@ -254,7 +254,7 @@ impl Executable for ClearLines {
     }
 }
 
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct HardDrop {
     batch: Batch,
 }
@@ -267,7 +267,7 @@ impl HardDrop {
         let nxt = NextPiece::new().into();
 
         let batch = Batch {
-            commands: VecDeque::from([sd, set, clr, nxt])
+            commands: VecDeque::from([sd, set, clr, nxt]),
         };
         Self { batch }
     }
@@ -283,7 +283,7 @@ impl Executable for HardDrop {
     }
 }
 
-#[derive(Default, Clone, Hash, Eq, PartialEq)]
+#[derive(Default, Clone, Hash, Eq, PartialEq, Debug)]
 pub struct Batch {
     pub commands: VecDeque<Command>,
 }
@@ -311,7 +311,7 @@ impl Executable for Batch {
     }
 }
 
-#[derive(Clone, Hash, Eq, PartialEq, Default)]
+#[derive(Clone, Hash, Eq, PartialEq, Default, Debug)]
 pub struct PlacementActions {
     pub batch: Batch,
     pub placement: Placement,
@@ -321,10 +321,43 @@ impl PlacementActions {
     pub fn new() -> Self {
         Self::default()
     }
+
+    pub fn push(&mut self, command: Command) {
+        self.batch.commands.push_back(command)
+    }
+
+    pub fn pop(&mut self) -> Option<Command> {
+        self.batch.commands.pop_back()
+    }
+
+    pub fn ret_push_front(&self, command: Command) -> Self {
+        let mut out = self.clone();
+        out.batch.commands.push_front(command);
+        out
+    }
+
+    pub fn execute_last(&mut self, game: &mut Game) -> bool {
+        if let Some(command) = self.batch.commands.back_mut() {
+            command.execute(game)
+        } else {
+            true
+        }
+    }
+
+    pub fn undo_last(&mut self, game: &mut Game) {
+        if let Some(command) = self.batch.commands.back_mut() {
+            command.undo(game)
+        }
+    }
 }
 
 pub fn duplicate_placement(used: &HashSet<PlacementActions>, piece: &Placement) -> bool {
-    used.iter().any(|PlacementActions { batch: _, placement }| placement == piece)
+    used.iter().any(
+        |PlacementActions {
+             batch: _,
+             placement,
+         }| placement == piece,
+    )
 }
 
 impl Executable for PlacementActions {

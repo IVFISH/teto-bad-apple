@@ -92,7 +92,7 @@ impl Board {
                 if self.get(row, col) {
                     out.push_str("■ ");
                 } else if locations.contains(&[row as i8 - piece.row, col as i8 - piece.col]) {
-                    out.push_str("■ ");
+                    out.push_str("▣ ");
                 } else {
                     out.push_str("□ ");
                 }
