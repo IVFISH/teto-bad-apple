@@ -9,15 +9,17 @@ use std::cmp::Ordering;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::{Debug, Display, Formatter};
 
-pub fn score(piece: &Placement, board: &Board) -> i8 {
+pub fn score(pieces: &Vec<Placement>, board: &Board) -> i8 {
     let mut out = 0;
-    for [y, x] in piece.rel_locations() {
-        let y = y + piece.row;
-        let x = x + piece.col;
-        if board.get(y as usize, x as usize) {
-            out -= 10;
-        } else {
-            out += 20;
+    for piece in pieces {
+        for [y, x] in piece.rel_locations() {
+            let y = y + piece.row;
+            let x = x + piece.col;
+            if board.get(y as usize, x as usize) {
+                out -= 1;
+            } else {
+                out += 1;
+            }
         }
     }
     out
@@ -62,13 +64,13 @@ impl Bot {
         for command in commands {
             if self.action(command.clone()) && !duplicate_placement(&used, &self.game.active) {
                 base.push(command);
-                base.placement = self.game.active;
+                base.placement.pop();
+                base.placement.push(self.game.active);
                 used.insert(base.clone());
                 self.unfiltered_search(base, used);
                 base.pop();
             }
             self.undo();
-            base.placement = self.game.active;
         }
     }
 
@@ -85,7 +87,7 @@ impl Bot {
         self.undo();
 
         used.into_iter()
-            .filter(|placement| self.game.board.piece_valid_placement(&placement.placement))
+            .filter(|placement| self.game.board.piece_valid_placement(&placement.placement.last().unwrap()))
             .sorted_by(sort_predicate)
             .take(n)
             .collect()

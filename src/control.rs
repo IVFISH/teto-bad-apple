@@ -165,7 +165,7 @@ pub struct NextPiece {
 
 impl Executable for NextPiece {
     fn execute(&mut self, game: &mut Game) -> bool {
-        game.last_placed = Some(game.active);
+        // game.placements.push(game.active);
         self.cur_piece = game.active;
         self.next_piece = game.queue.next();
         game.active = game.new_piece(self.next_piece);
@@ -173,6 +173,7 @@ impl Executable for NextPiece {
     }
 
     fn undo(&mut self, game: &mut Game) {
+        // game.placements.pop();
         game.queue.push(self.next_piece);
         game.active = self.cur_piece;
     }
@@ -315,7 +316,7 @@ impl Executable for Batch {
 #[derive(Clone, Hash, Eq, PartialEq, Default, Debug)]
 pub struct PlacementActions {
     pub batch: Batch,
-    pub placement: Placement,
+    pub placement: Vec<Placement>,
 }
 
 impl PlacementActions {
@@ -381,6 +382,6 @@ pub fn duplicate_placement(used: &HashSet<PlacementActions>, piece: &Placement) 
         |PlacementActions {
              batch: _,
              placement,
-         }| placement == piece,
+         }| placement.contains(piece),
     )
 }

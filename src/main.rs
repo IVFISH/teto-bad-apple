@@ -183,12 +183,14 @@ fn test() {
     // }
 
     loop {
-        let action = bot.best_action(4, 3, &board);
+        let action = bot.best_action(2, 30, &board);
         bot.action(action);
-        if score(&bot.game.last_placed.unwrap(), &board) > 30 {
+        println!("{}", bot.game.placements.len());
+        if score(&bot.game.placements, &board) > 10 {
             bot.undo();
             break;
         }
+        bot.game.placements.clear();
         println!("{}", bot);
     }
 }

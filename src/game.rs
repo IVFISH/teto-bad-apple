@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std::collections::VecDeque;
 use crate::board::*;
 use crate::piece::*;
 use crate::queue::*;
@@ -10,7 +11,7 @@ pub struct Game {
     pub queue: Queue,
     pub active: Placement,
     pub hold: Option<usize>,
-    pub last_placed: Option<Placement>
+    pub placements: Vec<Placement>
 }
 
 impl Display for Game {
@@ -32,7 +33,8 @@ impl Game {
             queue,
             active,
             hold: None,
-            last_placed: None
+            placements: Vec::new()
+
         }
     }
 
