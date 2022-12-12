@@ -172,6 +172,7 @@ fn test() {
     board.arr[0] = goal;
 
     println!("{}", board);
+    println!("{}", bot);
 
     // let actions = bot.look_ahead(3, 3, board);
     // println!("{}", actions.len());
@@ -181,12 +182,14 @@ fn test() {
     //     bot.undo();
     // }
 
-    for _ in 0..20 {
-        let mut action = bot.best_action(3, 3, &board).unwrap();
-        // let action = action.batch.commands.front().unwrap().clone();
-        bot.action(action.into());
+    loop {
+        let action = bot.best_action(4, 3, &board);
+        bot.action(action);
+        if score(&bot.game.last_placed.unwrap(), &board) > 30 {
+            bot.undo();
+            break;
+        }
         println!("{}", bot);
-        break;
     }
 }
 

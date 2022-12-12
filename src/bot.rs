@@ -9,7 +9,7 @@ use std::cmp::Ordering;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::{Debug, Display, Formatter};
 
-fn score(piece: &Placement, board: &Board) -> i8 {
+pub fn score(piece: &Placement, board: &Board) -> i8 {
     let mut out = 0;
     for [y, x] in piece.rel_locations() {
         let y = y + piece.row;
@@ -49,7 +49,7 @@ impl Bot {
         }
     }
 
-    fn search(&mut self, base: &mut PlacementActions, used: &mut HashSet<PlacementActions>) {
+    fn unfiltered_search(&mut self, base: &mut PlacementActions, used: &mut HashSet<PlacementActions>) {
         let commands: Vec<Command> = vec![
             PieceMove::new(0, -1).into(),
             PieceMove::new(0, 1).into(),
@@ -64,7 +64,7 @@ impl Bot {
                 base.push(command);
                 base.placement = self.game.active;
                 used.insert(base.clone());
-                self.search(base, used);
+                self.unfiltered_search(base, used);
                 base.pop();
             }
             self.undo();
@@ -72,17 +72,17 @@ impl Bot {
         }
     }
 
-    fn filtered_search(&mut self, sort_predicate: Box<dyn Fn(&PlacementActions, &PlacementActions) -> Ordering>, n: usize) -> HashSet<PlacementActions> {
+    fn search(&mut self, sort_predicate: Box<dyn Fn(&PlacementActions, &PlacementActions) -> Ordering>, n: usize) -> HashSet<PlacementActions> {
         let mut used = HashSet::new();
         let mut empty = PlacementActions::new();
-        // let mut hold = PlacementActions::new();
-        // hold.push(Hold::new().into());
+        let mut hold = PlacementActions::new();
+        hold.push(Hold::new().into());
 
-        self.search(&mut empty, &mut used);
+        self.unfiltered_search(&mut empty, &mut used);
 
-        // self.action(hold.clone().into());
-        // self.search(&mut hold, &mut used);
-        // self.undo();
+        self.action(hold.clone().into());
+        self.unfiltered_search(&mut hold, &mut used);
+        self.undo();
 
         used.into_iter()
             .filter(|placement| self.game.board.piece_valid_placement(&placement.placement))
@@ -93,26 +93,23 @@ impl Bot {
 
     fn deep_search(&mut self, depth: usize, mut base: PlacementActions, n: usize, board: &Board) -> HashSet<PlacementActions> {
         base.execute_last(&mut self.game);
-        let first = self.filtered_search(sort(board.clone()), n);
+        let mut search = self.search(sort(board.clone()), n);
+        search = search.into_iter().map(
+            |placement| placement.ret_push_back(HardDrop::new().into())
+        ).collect();
 
         if depth == 1 {
             base.undo_last(&mut self.game);
-
-            return first
-                .iter()
-                .map(|placement| placement.ret_push_front(base.clone().into()))
-                .collect::<HashSet<PlacementActions>>();
+            return search
+                .into_iter()
+                .map(|action| base.ret_push_back(action.into()))
+                .collect();
         }
 
         let mut out = HashSet::new();
-        for mut action in first {
-            action.push(HardDrop::new().into());
-
-            let mut extend = PlacementActions::new();
-            extend.push(action.into());
-            extend.push(base.clone().into());
-
-            out.extend(self.deep_search(depth - 1, extend, n, board));
+        for action in search {
+            let base = base.ret_push_back(action.into());
+            out.extend(self.deep_search(depth - 1, base, n, board));
         }
 
         base.undo_last(&mut self.game);
@@ -123,16 +120,14 @@ impl Bot {
         self.deep_search(depth, PlacementActions::new(), n, board)
     }
 
-    pub fn best_action(&mut self, depth: usize, n: usize, board: &Board) -> Option<PlacementActions> {
-        let all = self.look_ahead(depth, n, board);
-        let best = all
+    pub fn best_action(&mut self, depth: usize, n: usize, board: &Board) -> Command {
+        self.look_ahead(depth, n, board)
             .into_iter()
             .sorted_by(sort(board.clone()))
             .next()
-            .unwrap();
-        println!("{}", self.game.board.to_string(&best.placement));
-
-        Some(best)
+            .unwrap()
+            .pop_front()
+            .unwrap()
     }
 
     // pub fn build_pattern(&mut self, board: &Board) {

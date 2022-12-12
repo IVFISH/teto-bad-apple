@@ -165,6 +165,7 @@ pub struct NextPiece {
 
 impl Executable for NextPiece {
     fn execute(&mut self, game: &mut Game) -> bool {
+        game.last_placed = Some(game.active);
         self.cur_piece = game.active;
         self.next_piece = game.queue.next();
         game.active = game.new_piece(self.next_piece);
@@ -326,13 +327,27 @@ impl PlacementActions {
         self.batch.commands.push_back(command)
     }
 
+    pub fn push_front(&mut self, command: Command) {
+        self.batch.commands.push_front(command);
+    }
+
     pub fn pop(&mut self) -> Option<Command> {
         self.batch.commands.pop_back()
+    }
+
+    pub fn pop_front(&mut self) -> Option<Command> {
+        self.batch.commands.pop_front()
     }
 
     pub fn ret_push_front(&self, command: Command) -> Self {
         let mut out = self.clone();
         out.batch.commands.push_front(command);
+        out
+    }
+
+    pub fn ret_push_back(&self, command: Command) -> Self {
+        let mut out = self.clone();
+        out.batch.commands.push_back(command);
         out
     }
 
@@ -351,15 +366,6 @@ impl PlacementActions {
     }
 }
 
-pub fn duplicate_placement(used: &HashSet<PlacementActions>, piece: &Placement) -> bool {
-    used.iter().any(
-        |PlacementActions {
-             batch: _,
-             placement,
-         }| placement == piece,
-    )
-}
-
 impl Executable for PlacementActions {
     fn execute(&mut self, game: &mut Game) -> bool {
         self.batch.execute(game)
@@ -368,4 +374,13 @@ impl Executable for PlacementActions {
     fn undo(&mut self, game: &mut Game) {
         self.batch.undo(game)
     }
+}
+
+pub fn duplicate_placement(used: &HashSet<PlacementActions>, piece: &Placement) -> bool {
+    used.iter().any(
+        |PlacementActions {
+             batch: _,
+             placement,
+         }| placement == piece,
+    )
 }

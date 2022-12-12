@@ -28,7 +28,11 @@ impl Board {
     }
 
     pub fn get(&self, row: usize, col: usize) -> bool {
-        self.arr[row][col]
+        if row > 40 || col > 40 {
+            false
+        } else {
+            self.arr[row][col]
+        }
     }
 
     pub fn add(&mut self, row: usize, col: usize) {

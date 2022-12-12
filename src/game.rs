@@ -10,6 +10,7 @@ pub struct Game {
     pub queue: Queue,
     pub active: Placement,
     pub hold: Option<usize>,
+    pub last_placed: Option<Placement>
 }
 
 impl Display for Game {
@@ -31,6 +32,7 @@ impl Game {
             queue,
             active,
             hold: None,
+            last_placed: None
         }
     }
 
