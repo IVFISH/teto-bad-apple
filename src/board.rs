@@ -2,6 +2,7 @@
 use crate::piece::*;
 use std::fmt::{Display, Formatter};
 
+#[derive(Clone, Eq, PartialEq)]
 pub struct Board {
     pub arr: Vec<Vec<bool>>,
     pub width: usize,

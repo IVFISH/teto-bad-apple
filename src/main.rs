@@ -9,6 +9,7 @@ mod piece;
 mod queue;
 
 use crate::control::{Command, Executable, PlacementActions};
+use board::Board;
 use analyzer::*;
 use bot::*;
 use std::collections::HashSet;
@@ -143,26 +144,55 @@ fn l_spin_bot_2() -> Bot {
     bot
 }
 
-fn move_gen_test() {
-    let mut bot = l_spin_bot_2();
-    println!("{}", bot);
+// fn move_gen_test() {
+//     let mut bot = l_spin_bot_2();
+//     println!("{}", bot);
+//
+//     // let now = Instant::now();
+//     let actions = bot.look_ahead(2, 5, Board::new(10, 20));
+//     // println!("{}", now.elapsed().as_millis());
+//     for action in actions {
+//         // println!("{:#?}", action.batch.commands);
+//         bot.action(action.batch.into());
+//         if bot.game.active.row < 5 {
+//             println!("{}", bot);
+//         }
+//         // std::thread::sleep(Duration::from_millis(200));
+//         bot.undo();
+//     }
+// }
 
-    // let now = Instant::now();
-    let actions = bot.look_ahead(2);
-    // println!("{}", now.elapsed().as_millis());
-    for action in actions {
-        // println!("{:#?}", action.batch.commands);
-        bot.action(action.batch.into());
-        if bot.game.active.row < 5 {
-            println!("{}", bot);
-        }
-        // std::thread::sleep(Duration::from_millis(200));
-        bot.undo();
+fn test() {
+    let width = 40;
+    let height = 40;
+
+    let goal = to_board(load_image(330)).arr[0].clone();
+    let mut bot = Bot::new(height, width, 1);
+    let mut board = Board::new(height, width);
+    board.arr[0] = goal;
+
+    println!("{}", board);
+
+    // let actions = bot.look_ahead(3, 3, board);
+    // println!("{}", actions.len());
+    // for action in actions {
+    //     bot.action(action.into());
+    //     println!("{}", bot);
+    //     bot.undo();
+    // }
+
+    for _ in 0..20 {
+        let mut action = bot.best_action(3, 3, &board).unwrap();
+        // let action = action.batch.commands.front().unwrap().clone();
+        bot.action(action.into());
+        println!("{}", bot);
+        break;
     }
 }
 
 fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
+    test()
     // let board = to_board(load_image(210));
     // println!("{}", board);
     //
@@ -181,7 +211,7 @@ fn main() {
     //     bot.undo();
     // }
 
-    move_gen_test()
+    // move_gen_test()
     // control_test()
     // move_benchmark()
 }

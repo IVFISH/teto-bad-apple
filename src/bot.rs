@@ -9,18 +9,24 @@ use std::cmp::Ordering;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::{Debug, Display, Formatter};
 
-fn score(piece: &Placement, board: &Board, row: i8) -> i8 {
+fn score(piece: &Placement, board: &Board) -> i8 {
     let mut out = 0;
     for [y, x] in piece.rel_locations() {
         let y = y + piece.row;
         let x = x + piece.col;
-        if board.get(y as usize, x as usize) && row == y {
-            out += 10;
+        if board.get(y as usize, x as usize) {
+            out -= 10;
         } else {
-            out -= 20;
+            out += 20;
         }
     }
     out
+}
+
+fn sort(board: Board) -> Box<dyn Fn(&PlacementActions, &PlacementActions) -> Ordering> {
+    Box::new(move |a, b|
+        score(&a.placement, &board).partial_cmp(&score(&b.placement, &board)).unwrap()
+    )
 }
 
 pub struct Bot {
@@ -66,30 +72,28 @@ impl Bot {
         }
     }
 
-    fn filtered_search(&mut self) -> HashSet<PlacementActions> {
+    fn filtered_search(&mut self, sort_predicate: Box<dyn Fn(&PlacementActions, &PlacementActions) -> Ordering>, n: usize) -> HashSet<PlacementActions> {
         let mut used = HashSet::new();
         let mut empty = PlacementActions::new();
-        let mut hold = PlacementActions::new();
-        hold.push(Hold::new().into());
+        // let mut hold = PlacementActions::new();
+        // hold.push(Hold::new().into());
 
         self.search(&mut empty, &mut used);
 
-        self.action(hold.clone().into());
-        self.search(&mut hold, &mut used);
-        self.undo();
+        // self.action(hold.clone().into());
+        // self.search(&mut hold, &mut used);
+        // self.undo();
 
         used.into_iter()
             .filter(|placement| self.game.board.piece_valid_placement(&placement.placement))
+            .sorted_by(sort_predicate)
+            .take(n)
             .collect()
     }
 
-    fn deep_search(
-        &mut self,
-        depth: usize,
-        mut base: PlacementActions,
-    ) -> HashSet<PlacementActions> {
+    fn deep_search(&mut self, depth: usize, mut base: PlacementActions, n: usize, board: &Board) -> HashSet<PlacementActions> {
         base.execute_last(&mut self.game);
-        let first = self.filtered_search();
+        let first = self.filtered_search(sort(board.clone()), n);
 
         if depth == 1 {
             base.undo_last(&mut self.game);
@@ -105,18 +109,30 @@ impl Bot {
             action.push(HardDrop::new().into());
 
             let mut extend = PlacementActions::new();
-            extend.push(base.clone().into());
             extend.push(action.into());
+            extend.push(base.clone().into());
 
-            out.extend(self.deep_search(depth - 1, extend));
+            out.extend(self.deep_search(depth - 1, extend, n, board));
         }
 
         base.undo_last(&mut self.game);
         out
     }
 
-    pub fn look_ahead(&mut self, depth: usize) -> HashSet<PlacementActions> {
-        self.deep_search(depth, PlacementActions::new())
+    pub fn look_ahead(&mut self, depth: usize, n: usize, board: &Board) -> HashSet<PlacementActions> {
+        self.deep_search(depth, PlacementActions::new(), n, board)
+    }
+
+    pub fn best_action(&mut self, depth: usize, n: usize, board: &Board) -> Option<PlacementActions> {
+        let all = self.look_ahead(depth, n, board);
+        let best = all
+            .into_iter()
+            .sorted_by(sort(board.clone()))
+            .next()
+            .unwrap();
+        println!("{}", self.game.board.to_string(&best.placement));
+
+        Some(best)
     }
 
     // pub fn build_pattern(&mut self, board: &Board) {
@@ -153,8 +169,7 @@ impl Bot {
     // }
 
     pub fn undo(&mut self) {
-        let mut command = self.stack.pop_front().unwrap();
-        command.undo(&mut self.game);
+        self.stack.pop_front().unwrap().undo(&mut self.game)
     }
 
     pub fn move_left(&mut self) -> bool {
