@@ -147,39 +147,18 @@ fn move_gen_test() {
     let mut bot = l_spin_bot_2();
     println!("{}", bot);
 
-    // let now = Instant::now();
     let actions = bot.look_ahead(2);
-    // println!("{}", now.elapsed().as_millis());
     for action in actions {
         // println!("{:#?}", action.batch.commands);
-        bot.action(action.batch.into());
+        bot.action(action.into());
         if bot.game.active.row < 5 {
             println!("{}", bot);
         }
-        // std::thread::sleep(Duration::from_millis(200));
         bot.undo();
     }
 }
 
 fn main() {
-    std::env::set_var("RUST_BACKTRACE", "1");
-    // let board = to_board(load_image(210));
-    // println!("{}", board);
-    //
-    // let mut bot = Bot::new(40, 40, 100);
-    // println!("{:?}", bot.game.active);
-    // bot.build_row(&board, 0);
-    // bot.build_pattern(&board);
-    // println!("{}", bot);
-
-    // let mut bot = Bot::new(20, 10, 100);
-    // let out = bot.dfs();
-    // println!("{}", out.len());
-    // for PlacementActions { placement: _, mut batch } in out {
-    //     bot.action(batch.into());
-    //     println!("{}", bot);
-    //     bot.undo();
-    // }
 
     move_gen_test()
     // control_test()

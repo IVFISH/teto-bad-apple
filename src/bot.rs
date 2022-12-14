@@ -43,7 +43,7 @@ impl Bot {
         }
     }
 
-    fn search(&mut self, base: &mut PlacementActions, used: &mut HashSet<PlacementActions>) {
+    fn search_all(&mut self, base: &mut PlacementActions, used: &mut HashSet<PlacementActions>) {
         let commands: Vec<Command> = vec![
             PieceMove::new(0, -1).into(),
             PieceMove::new(0, 1).into(),
@@ -58,24 +58,23 @@ impl Bot {
                 base.push(command);
                 base.placement = self.game.active;
                 used.insert(base.clone());
-                self.search(base, used);
+                self.search_all(base, used);
                 base.pop();
             }
             self.undo();
-            base.placement = self.game.active;
         }
     }
 
-    fn filtered_search(&mut self) -> HashSet<PlacementActions> {
+    fn search(&mut self) -> HashSet<PlacementActions> {
         let mut used = HashSet::new();
         let mut empty = PlacementActions::new();
         let mut hold = PlacementActions::new();
         hold.push(Hold::new().into());
 
-        self.search(&mut empty, &mut used);
+        self.search_all(&mut empty, &mut used);
 
         self.action(hold.clone().into());
-        self.search(&mut hold, &mut used);
+        self.search_all(&mut hold, &mut used);
         self.undo();
 
         used.into_iter()
@@ -83,32 +82,24 @@ impl Bot {
             .collect()
     }
 
-    fn deep_search(
-        &mut self,
-        depth: usize,
-        mut base: PlacementActions,
-    ) -> HashSet<PlacementActions> {
+    fn deep_search(&mut self, depth: usize, mut base: PlacementActions) -> HashSet<PlacementActions> {
         base.execute_last(&mut self.game);
-        let first = self.filtered_search();
+        let search = self.search();
 
         if depth == 1 {
             base.undo_last(&mut self.game);
 
-            return first
-                .iter()
-                .map(|placement| placement.ret_push_front(base.clone().into()))
-                .collect::<HashSet<PlacementActions>>();
+            return search
+                .into_iter()
+                .map(|placement| base.add_placement(placement))
+                .collect();
         }
 
         let mut out = HashSet::new();
-        for mut action in first {
-            action.push(HardDrop::new().into());
-
-            let mut extend = PlacementActions::new();
-            extend.push(base.clone().into());
-            extend.push(action.into());
-
-            out.extend(self.deep_search(depth - 1, extend));
+        for action in search {
+            let mut base = base.clone();
+            base.push(action.ret_push(HardDrop::new().into()).into());
+            out.extend(self.deep_search(depth - 1, base));
         }
 
         base.undo_last(&mut self.game);
@@ -119,42 +110,8 @@ impl Bot {
         self.deep_search(depth, PlacementActions::new())
     }
 
-    // pub fn build_pattern(&mut self, board: &Board) {
-    //     for row in 0..board.height {
-    //         println!("{}", self);
-    //         self.build_row(board, row as i8);
-    //     }
-    // }
-
-    // pub fn build_row(&mut self, board: &Board, row: i8) {
-    //     loop {
-    //         let placements = self.filtered_search();
-    //         let mut ordered: Vec<ComparablePlacement> = placements
-    //             .iter()
-    //             .map(|placement| ComparablePlacement {
-    //                 placement: placement.placement,
-    //                 board,
-    //                 row,
-    //             })
-    //             .collect();
-    //         ordered.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    //         let ComparablePlacement {
-    //             placement,
-    //             board,
-    //             row,
-    //         } = ordered.pop().unwrap();
-    //         if score(&placement, board, row) > 0 {
-    //             self.game.active = ordered.pop().unwrap().placement;
-    //             self.hard_drop();
-    //             continue;
-    //         }
-    //         break;
-    //     }
-    // }
-
     pub fn undo(&mut self) {
-        let mut command = self.stack.pop_front().unwrap();
-        command.undo(&mut self.game);
+        self.stack.pop_front().unwrap().undo(&mut self.game);
     }
 
     pub fn move_left(&mut self) -> bool {

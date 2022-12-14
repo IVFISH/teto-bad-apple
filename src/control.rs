@@ -82,7 +82,6 @@ impl Executable for PieceRotate {
 
         for [y, x] in game.active.get_offsets(self.direction) {
             let mut command = PieceMove::new(-y, -x);
-            // println!("{} {}", x, y);
             if command.execute(game) {
                 return true;
             }
@@ -330,9 +329,16 @@ impl PlacementActions {
         self.batch.commands.pop_back()
     }
 
-    pub fn ret_push_front(&self, command: Command) -> Self {
+    pub fn ret_push(&self, command: Command) -> Self {
         let mut out = self.clone();
-        out.batch.commands.push_front(command);
+        out.push(command);
+        out
+    }
+
+    pub fn add_placement(&self, placement: Self) -> Self {
+        let mut out = self.clone();
+        out.placement = placement.placement;
+        out.push(placement.into());
         out
     }
 
