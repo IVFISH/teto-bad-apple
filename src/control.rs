@@ -28,7 +28,7 @@ pub trait Executable {
 
 #[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct PieceMove {
-    moved: bool,
+    dist: i8,
     dy: i8,
     dx: i8,
 }
@@ -36,7 +36,7 @@ pub struct PieceMove {
 impl PieceMove {
     pub fn new(dy: i8, dx: i8) -> Self {
         Self {
-            moved: false,
+            dist: 0,
             dy,
             dx,
         }
@@ -46,17 +46,17 @@ impl PieceMove {
 impl Executable for PieceMove {
     fn execute(&mut self, game: &mut Game) -> bool {
         game.active.shift(self.dy, self.dx);
-        self.moved = game.board.piece_valid_location(&game.active);
-        if !self.moved {
+        let valid = game.board.piece_valid_location(&game.active);
+        if !valid {
             game.active.shift(-self.dy, -self.dx);
-        };
-        self.moved
+        }
+        self.dist += valid as i8;
+        valid
     }
 
     fn undo(&mut self, game: &mut Game) {
-        if self.moved {
-            game.active.shift(-self.dy, -self.dx);
-        }
+        game.active.shift(-self.dy * self.dist, -self.dx * self.dist);
+        self.dist = 0;
     }
 }
 
@@ -78,8 +78,12 @@ impl PieceRotate {
 impl Executable for PieceRotate {
     fn execute(&mut self, game: &mut Game) -> bool {
         self.before = game.active;
-        game.active.rotate(self.direction);
 
+        if self.direction == 0 {
+            return true;
+        }
+
+        game.active.rotate(self.direction);
         for [y, x] in game.active.get_offsets(self.direction) {
             let mut command = PieceMove::new(-y, -x);
             if command.execute(game) {

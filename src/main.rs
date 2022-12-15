@@ -152,7 +152,7 @@ fn move_gen_test() {
     println!("{}", now.elapsed().as_millis());
     for action in actions {
         bot.execute(action.into());
-        if bot.game.active.row < 3 {
+        if bot.game.active.row < 12 {
             println!("{}", bot);
         }
         bot.undo();

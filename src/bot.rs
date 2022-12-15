@@ -46,26 +46,63 @@ impl Bot {
         }
     }
 
-    fn search_all(&mut self, base: &mut PlacementActions, used: &mut HashSet<PlacementActions>) {
-        let commands: Vec<Command> = vec![
-            PieceMove::new(0, -1).into(),
-            PieceMove::new(0, 1).into(),
-            PieceRotate::new(1).into(),
-            PieceRotate::new(2).into(),
-            PieceRotate::new(3).into(),
-            SoftDrop::new().into(),
-        ];
+    fn add_rotations(&mut self, base: PlacementActions, used: &mut HashSet<PlacementActions>, before: Placement, check: bool) {
+        for rotation in 0..4 {
+            let mut rotation = PieceRotate::new(rotation);
+            rotation.execute(&mut self.game);
+            self.soft_drop();
 
-        for command in commands {
-            if self.execute(command.clone()) && !duplicate_placement(&used, &self.game.active) {
-                base.push(command);
-                base.placement = self.game.active;
-                used.insert(base.clone());
-                self.search_all(base, used);
-                base.pop();
+            let mut base = base.clone();
+            base.placement = self.game.active;
+            base.push(rotation.into());
+            base.push(SoftDrop::new().into());
+
+            SoftDrop::new().execute(&mut self.game);
+            let dropped = self.game.active;
+            self.game.active = before;
+
+            if !check || !duplicate_placement(used, &dropped) {
+                used.insert(base);
             }
-            self.undo();
         }
+    }
+
+    fn trivial(&mut self, base: &mut PlacementActions, used: &mut HashSet<PlacementActions>) {
+        let mut left = PieceMove::new(0, -1);
+        let mut right = PieceMove::new(0, 1);
+        let before = self.game.active;
+
+        let mut left_base = base.clone();
+        while left.execute(&mut self.game) {
+            left_base.push(PieceMove::new(0, -1).into());
+            self.add_rotations(left_base.clone(), used, self.game.active, false);
+        }
+        // left.undo(&mut self.game.active);
+        self.game.active = before;
+
+        let mut right_base = base.clone();
+        while right.execute(&mut self.game) {
+            right_base.push(PieceMove::new(0, 1).into());
+            self.add_rotations(right_base.clone(), used, self.game.active, false);
+        }
+        // right.undo(&mut self.game.active);
+        self.game.active = before;
+    }
+
+    fn non_trivial(&mut self, used: &mut HashSet<PlacementActions>) {
+        let before = self.game.active;
+        let mut unchecked = used.clone();
+
+        for placement in used.clone() {
+            self.game.active = placement.placement;
+            self.add_rotations(placement, used, self.game.active, true);
+        }
+        self.game.active = before;
+    }
+
+    fn search_all(&mut self, base: &mut PlacementActions, used: &mut HashSet<PlacementActions>) {
+        self.trivial(base, used);
+        self.non_trivial(used);
     }
 
     fn search(&mut self) -> HashSet<PlacementActions> {
