@@ -8,6 +8,8 @@ use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::{Debug, Display, Formatter};
+use std::thread;
+use std::sync::{Arc, Mutex};
 
 fn score(piece: &Placement, board: &Board, row: i8) -> i8 {
     let mut out = 0;
@@ -23,6 +25,7 @@ fn score(piece: &Placement, board: &Board, row: i8) -> i8 {
     out
 }
 
+#[derive(Clone)]
 pub struct Bot {
     pub game: Game,
     stack: VecDeque<Command>,
@@ -54,7 +57,7 @@ impl Bot {
         ];
 
         for command in commands {
-            if self.action(command.clone()) && !duplicate_placement(&used, &self.game.active) {
+            if self.execute(command.clone()) && !duplicate_placement(&used, &self.game.active) {
                 base.push(command);
                 base.placement = self.game.active;
                 used.insert(base.clone());
@@ -66,20 +69,32 @@ impl Bot {
     }
 
     fn search(&mut self) -> HashSet<PlacementActions> {
-        let mut used = HashSet::new();
         let mut empty = PlacementActions::new();
         let mut hold = PlacementActions::new();
         hold.push(Hold::new().into());
+        let mut other = self.clone();
+        let mut other2 = self.clone();
 
-        self.search_all(&mut empty, &mut used);
+        let h1 = thread::spawn(move || {
+            let mut used = HashSet::new();
+            other.search_all(&mut empty, &mut used);
+            used
+        });
 
-        self.action(hold.clone().into());
-        self.search_all(&mut hold, &mut used);
-        self.undo();
+        let h2 = thread::spawn(move || {
+            let mut used = HashSet::new();
+            other2.execute(Hold::new().into());
+            other2.search_all(&mut hold, &mut used);
+            other2.undo();
+            used
+        });
 
-        used.into_iter()
+        let mut out = h1.join().unwrap();
+        out.extend(h2.join().unwrap());
+        out
+            .into_iter()
             .filter(|placement| self.game.board.piece_valid_placement(&placement.placement))
-            .collect()
+            .collect::<HashSet<PlacementActions>>()
     }
 
     fn deep_search(&mut self, depth: usize, mut base: PlacementActions) -> HashSet<PlacementActions> {
@@ -115,38 +130,38 @@ impl Bot {
     }
 
     pub fn move_left(&mut self) -> bool {
-        self.action(PieceMove::new(0, -1).into())
+        self.execute(PieceMove::new(0, -1).into())
     }
 
     pub fn move_right(&mut self) -> bool {
-        self.action(PieceMove::new(0, 1).into())
+        self.execute(PieceMove::new(0, 1).into())
     }
 
     pub fn soft_drop(&mut self) -> bool {
-        self.action(SoftDrop::new().into())
+        self.execute(SoftDrop::new().into())
     }
 
     pub fn rotate_cw(&mut self) -> bool {
-        self.action(PieceRotate::new(1).into())
+        self.execute(PieceRotate::new(1).into())
     }
 
     pub fn rotate_180(&mut self) -> bool {
-        self.action(PieceRotate::new(2).into())
+        self.execute(PieceRotate::new(2).into())
     }
 
     pub fn rotate_ccw(&mut self) -> bool {
-        self.action(PieceRotate::new(3).into())
+        self.execute(PieceRotate::new(3).into())
     }
 
     pub fn hard_drop(&mut self) -> bool {
-        self.action(HardDrop::new().into())
+        self.execute(HardDrop::new().into())
     }
 
     pub fn hold(&mut self) -> bool {
-        self.action(Hold::new().into())
+        self.execute(Hold::new().into())
     }
 
-    pub fn action(&mut self, command: Command) -> bool {
+    pub fn execute(&mut self, command: Command) -> bool {
         self.stack.push_front(command);
         self.stack.get_mut(0).unwrap().execute(&mut self.game)
     }

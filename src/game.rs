@@ -5,6 +5,7 @@ use crate::piece::*;
 use crate::queue::*;
 use std::fmt::{Display, Formatter};
 
+#[derive(Clone)]
 pub struct Game {
     pub board: Board,
     pub queue: Queue,

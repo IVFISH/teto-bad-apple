@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
 
+#[derive(Clone)]
 pub struct Queue {
     seed: usize,
     pub pieces: VecDeque<usize>,

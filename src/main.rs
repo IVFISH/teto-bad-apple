@@ -147,11 +147,12 @@ fn move_gen_test() {
     let mut bot = l_spin_bot_2();
     println!("{}", bot);
 
+    let now = Instant::now();
     let actions = bot.look_ahead(2);
+    println!("{}", now.elapsed().as_millis());
     for action in actions {
-        // println!("{:#?}", action.batch.commands);
-        bot.action(action.into());
-        if bot.game.active.row < 5 {
+        bot.execute(action.into());
+        if bot.game.active.row < 3 {
             println!("{}", bot);
         }
         bot.undo();
