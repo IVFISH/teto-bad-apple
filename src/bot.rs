@@ -72,26 +72,24 @@ impl Bot {
         let mut empty = PlacementActions::new();
         let mut hold = PlacementActions::new();
         hold.push(Hold::new().into());
-        let mut other = self.clone();
-        let mut other2 = self.clone();
 
+        let mut other = self.clone();
         let h1 = thread::spawn(move || {
             let mut used = HashSet::new();
             other.search_all(&mut empty, &mut used);
             used
         });
 
-        let h2 = thread::spawn(move || {
-            let mut used = HashSet::new();
-            other2.execute(Hold::new().into());
-            other2.search_all(&mut hold, &mut used);
-            other2.undo();
-            used
-        });
+        let mut used = HashSet::new();
+        self.execute(Hold::new().into());
+        self.search_all(&mut hold, &mut used);
+        self.undo();
 
-        let mut out = h1.join().unwrap();
-        out.extend(h2.join().unwrap());
-        out
+        h1
+            .join()
+            .unwrap()
+            .into_iter()
+            .chain(used)
             .into_iter()
             .filter(|placement| self.game.board.piece_valid_placement(&placement.placement))
             .collect::<HashSet<PlacementActions>>()
