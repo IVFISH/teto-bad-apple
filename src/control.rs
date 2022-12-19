@@ -361,8 +361,9 @@ impl PlacementActions {
     }
 }
 
-pub fn duplicate_placement(used: &HashSet<PlacementActions>, piece: &Placement) -> bool {
-    used.iter().any(
+pub fn duplicate(used: &HashSet<PlacementActions>, piece: &Placement) -> bool {
+    used.iter()
+        .any(
         |PlacementActions {
              batch: _,
              placement,

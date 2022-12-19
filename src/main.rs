@@ -149,10 +149,10 @@ fn move_gen_test() {
 
     let now = Instant::now();
     let actions = bot.look_ahead(2);
-    println!("{}", now.elapsed().as_millis());
+    println!("{}", now.elapsed().as_micros());
     for action in actions {
         bot.execute(action.into());
-        if bot.game.active.row < 12 {
+        if bot.game.active.row < 5 {
             println!("{}", bot);
         }
         bot.undo();
